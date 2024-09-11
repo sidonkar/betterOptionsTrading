@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         betterKite
 // @namespace    https://github.com/amit0rana/betterKite
-// @version      4.07
+// @version      4.11
 // @description  Introduces small features on top of kite app
 // @author       Amit and Updated by Onkar
 // @match        https://kite.zerodha.com/*
@@ -15,6 +15,7 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_setClipboard
 // @grant        GM_getClipboard
+// @require      https://openuserjs.org/src/libs/sizzle/GM_config.js
 // @require      http://cdn.jsdelivr.net/gh/sidonkar/betterOptionsTrading/betterCommon.js
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js
 // @require      http://cdn.jsdelivr.net/gh/sidonkar/MonkeyConfig/monkeyconfig.js
@@ -69,8 +70,8 @@ const GMRefTradeName = "BK_REF_TRADES";
 const DD_NONE = '';
 const DD_HOLDINGS = 'H';
 const DD_POSITONS = 'P';
-const MM_BASKET = 'MM_BASKET';
-const MM_CALC = 'MM_CALC';
+const MM_BASKET = 'Basket';
+const MM_CALC = 'Calculator';
 var g_dropdownDisplay = DD_NONE;
 var g_showOnlyMISPositions = false;
 var g_showOnlyEXITEDPositions = false;
@@ -86,170 +87,293 @@ const indices = ['NIFTY','BANKNIFTY','FINNIFTY','SENSEX','BANKEX','MIDCPNIFTY'];
 
 var g_color = ((jQ('html').attr('data-theme') == 'dark') ? '#191919' : 'white');
 
-const g_config = new MonkeyConfig({
-    title: 'betterKite Settings',
-    menuCommand: true,
-    onSave: reloadPage,
-    params: {
-        auto_refresh_PnL: {
-            type: 'checkbox',
-            default: false
+function initGM() {
+    GM_registerMenuCommand("Settings ", function () {
+        gmc.open();
+    }, "s");
+    GM_config.init(
+    {
+        'id': 'betterKiteConfig', // The id used for this instance of GM_config
+        'title': 'betterKite Settings', // Panel Title
+        'fields': // Fields object
+        {
+            'auto_refresh_PnL': // This is the id of the field
+            {
+                'label': 'Auto Refresh P&L', // Appears next to field
+                'type': 'checkbox', // Makes this setting a text field
+                'default': false, // Default value if user doesn't change it
+                'title': 'Give us your name!', // Add a tooltip (hover over text)
+                'section': ['Positions']
+            },
+            'use_api':
+            {
+                'label': 'Use API intead of oms',
+                'title': 'smartLimit works only with API',
+                'type': 'checkbox',
+                'default': false,
+            },
+            'api_key':
+            {
+                'label': 'API Key',
+                'type': 'text',
+                'default': '',
+            },
+            'api_access_token':
+            {
+                'label': 'Access Token',
+                'type': 'text',
+                'default': '',
+            },
+            'overide_qty_freeze_check_to_enable':
+            {
+                'label': 'Enable overiding of Qty freeze feature',
+                'type': 'checkbox',
+                'default': true,
+                'section': ['Positions', 'New Position']
+            },
+            'qty_freeze_warning':
+            {
+                'label': 'Warning when removing Qty Freeze',
+                'type': 'checkbox',
+                'default': true,
+            },
+            'nifty_freeze_quantity':
+            {
+                'label': 'Nifty Qty Freeze',
+                'type': 'number',
+                'default': 1800,
+            },
+            'banknifty_freeze_quantity':
+            {
+                'label': 'BankNifty Qty Freeze',
+                'type': 'number',
+                'default': 900,
+            },
+            'finnifty_freeze_quantity':
+            {
+                'label': 'FinNifty Qty Freeze',
+                'type': 'number',
+                'default': 1800,
+            },
+            'sensex_freeze_quantity':
+            {
+                'label': 'Sensex Qty Freeze',
+                'type': 'number',
+                'default': 1000,
+            },
+            'bankex_freeze_quantity':
+            {
+                'label': 'Bankex Qty Freeze',
+                'type': 'number',
+                'default': 1000,
+            },
+            'midcap_freeze_quantity':
+            {
+                'label': 'Midcap Qty Freeze',
+                'type': 'number',
+                'default': 4200,
+            },
+            'smart_limit_check_to_enable':
+            {
+                'label': 'Enable smartLimit feature (needs API)',
+                'type': 'checkbox',
+                'default': false,
+            },
+            'auto_sl_order':
+            {
+                'label': 'Add SL order',
+                'type': 'checkbox',
+                'default': false,
+                'section': ['Positions', 'Scalping']
+            },
+            'auto_sl_points':
+            {
+                'label': 'SL points',
+                'type': 'number',
+                'default': 20,
+            },
+            'auto_save_profit_points':
+            {
+                'label': 'Save profit points',
+                'type': 'number',
+                'default': 20,
+            },
+            'auto_trail_points':
+            {
+                'label': 'Trail profit points',
+                'type': 'number',
+                'default': 3,
+            },
+            'include_existing_positions':
+            {
+                'label': 'Include existing positions for Margin calculation',
+                'type': 'checkbox',
+                'default': false,
+                'section': ['Positions', 'Margin']
+            },
+            'show_margin': {
+                'label': 'Include existing positions for Margin calculation',
+                'type': 'checkbox',
+                'default': false,
+            },
+            'margin_method':
+            {
+                'label': 'Margin Calculation Method',
+                'type': 'select',
+                'options': ['Basket', 'Calculator'],
+                'default': 'Basket',
+            },
+            'nf_hedge':
+            {
+                'label': 'Nifty Hedge',
+                'type': 'number',
+                'default': 500,
+                'title': 'Used for calculating Margin saving on taking hedge',
+            },
+            'bnf_hedge':
+            {
+                'label': 'BankNifty Hedge',
+                'type': 'number',
+                'default': 700,
+                'title': 'Used for calculating Margin saving on taking hedge',
+            },
+            'stock_hedge':
+            {
+                'label': 'Stocks Hedge',
+                'type': 'number',
+                'default': 100,
+                'title': 'Used for calculating Margin saving on taking hedge',
+            },
+            'enable_nifty_monthly_weekly_range':
+            {
+                'label': 'Nifty range based on vix on hover of Pins',
+                'type': 'checkbox',
+                'default': true,
+                'section': ['Positions', 'VIX Based Range. To use, PIN 1 should be Nifty50, Watchlist should have INDIA VIX. Then click on Nifty50 value in Pin1. Now you sould see daily, weekly, monthly range.']
+            },
+            'nifty_vix_range_monthly_sqroot':
+            {
+                'label': 'Nifty Range monthly sqroot',
+                'type': 'number',
+                'default': 12,
+            },
+            'nifty_vix_range_weekly_sqroot':
+            {
+                'label': 'Nifty Range weekly sqroot',
+                'type': 'number',
+                'default': 52,
+            },
+            'nifty_vix_range_daily_sqroot':
+            {
+                'label': 'Nifty Range daily sqroot',
+                'type': 'number',
+                'title': '365 - 104 (weedends) - 13 (holidays)',
+                'default': 248,
+            },
+            'marketlist_number_of_strikes':
+            {
+                'label': 'Number of strikes +- ATM',
+                'type': 'number',
+                'default': 4,
+                'section': ['Watchlist']
+            },
+            'filter_watchlist':
+            {
+                'label': 'Filter based on watchlist',
+                'type': 'checkbox',
+                'default': true,
+            },
+            'pro_mode':
+            {
+                'label': 'Pro mode',
+                'type': 'checkbox',
+                'default': false,
+                'section': ['Others']
+            },
+            'logging':
+            {
+                'label': 'Logging',
+                'type': 'select',
+                'options': ['100', '2', '1'],
+                'default': '100',
+            },
+            'nifty_lot_size': {
+                'label': 'Nifty Lot Size',
+                'type': 'number',
+                'default': 25
+            },
+            'bank_nifty_lot_size': {
+                'label': 'Bank Nifty Lot Size',
+                'type': 'number',
+                'default': 15
+            },
+            'fin_nifty_lot_size': {
+                'label': 'Fin Nifty Lot Size',
+                'type': 'number',
+                'default': 25
+            },
+            'sensex_lot_size': {
+                'label': 'Sensex Lot Size',
+                'type': 'number',
+                'default': 10
+            },
+            'bankex_lot_size': {
+                'label': 'Bankex Lot Size',
+                'type': 'number',
+                'default': 15
+            },
+            'midcap_lot_size': {
+                'label': 'Nifty Midcap Lot Size',
+                'type': 'number',
+                'default': 75
+            },
+            'pe_ce_order': {
+                'label': 'PE CE ORDER',
+                'type': 'checkbox',
+                'default': true
+            },
         },
-        include_existing_positions: {
-            type: 'checkbox',
-            default: false
-        },
-        show_margin: {
-            type: 'checkbox',
-            default: false
-        },
-        margin_method: {
-            type: 'select',
-            choices: ['Basket', 'Calculator'],
-            values: [MM_BASKET, MM_CALC],
-            default: MM_BASKET
-        },
-        filter_watchlist: {
-            type: 'checkbox',
-            default: true
-        },
-        nf_hedge: {
-            type: 'number',
-            default: 500
-        },
-        bnf_hedge: {
-            type: 'number',
-            default: 700
-        },
-        stock_hedge: {
-            type: 'number',
-            default: 100
-        },
-        logging: {
-            type: 'select',
-            choices: ['Info', 'Debug', 'None'],
-            values: [D_LEVEL_INFO, D_LEVEL_DEBUG, D_LEVEL_NONE],
-            default: D_LEVEL_NONE
-        },
-        nifty_lot_size: {
-            type: 'number',
-            default: 25
-        },
-        bank_nifty_lot_size: {
-            type: 'number',
-            default: 15
-        },
-        fin_nifty_lot_size: {
-            type: 'number',
-            default: 25
-        },
-        sensex_lot_size: {
-            type: 'number',
-            default: 10
-        },
-        bankex_lot_size: {
-            type: 'number',
-            default: 15
-        },
-        midcap_lot_size: {
-            type: 'number',
-            default: 75
-        },
-        overide_qty_freeze_check_to_enable: {
-            type: 'checkbox',
-            default: false
-        },
-        smart_limit_check_to_enable: {
-            type: 'checkbox',
-            default: false
-        },
-        pe_ce_order: {
-            type: 'checkbox',
-            default: true
-        },
-        /*use_api: {
-            type: 'checkbox',
-            default: false
-        },
-        api_key: {
-            type: 'text',
-            default: ''
-        },
-        api_access_token: {
-            type: 'text',
-            default: ''
-        },*/
-        pro_mode: {
-            type: 'checkbox',
-            default: false
-        },
-        qty_freeze_warning: {
-            type: 'checkbox',
-            default: true
-        },
-        nifty_freeze_quantity: {
-            type: 'number',
-            default: 1800
-        },
-        banknifty_freeze_quantity: {
-            type: 'number',
-            default: 900
-        },
-        finnifty_freeze_quantity: {
-            type: 'number',
-            default: 1800
-        },
-        sensex_freeze_quantity: {
-            type: 'number',
-            default: 1000
-        },
-        bankex_freeze_quantity: {
-            type: 'number',
-            default: 900
-        },
-        midcap_freeze_quantity: {
-            type: 'number',
-            default: 4200
-        },
-        auto_sl_order: {
-            type: 'checkbox',
-            default: false
-        },
-        auto_sl_points: {
-            type: 'number',
-            default: 20
-        },
-        auto_save_profit_points: {
-            type: 'number',
-            default: 20
-        },
-        auto_trail_points: {
-            type: 'number',
-            default: 3
-        },
-        /*marketlist_number_of_strikes: {
-            type: 'number',
-            default: 4
-        },*/
-    }
-});
-const D_LEVEL = g_config.get('logging');
-const PRO_MODE = g_config.get('pro_mode');
-const MARGIN_METHOD = g_config.get('margin_method');
+        'events':
+        {
+            // 'init': function () { // runs after initialization completes
+            // //     // override saved value
+            // //     this.set('Name', 'Mike Medley');
 
-const BANKNIFTY_QTY_FREEZE = parseInt(g_config.get('banknifty_freeze_quantity'));
-const NIFTY_QTY_FREEZE = parseInt(g_config.get('nifty_freeze_quantity'));
-const FINNIFTY_QTY_FREEZE = parseInt(g_config.get('finnifty_freeze_quantity'));
-const SENSEX_QTY_FREEZE = parseInt(g_config.get('sensex_freeze_quantity'));
-const BANKEX_QTY_FREEZE = parseInt(g_config.get('bankex_freeze_quantity'));
-const MIDCAP_QTY_FREEZE = parseInt(g_config.get('midcap_freeze_quantity'));
+            // //     // open frame
+            // //     this.open();
+            //     let auto_refresh_PnL = gmc.get('auto_refresh_PnL');
 
-const NIFTY_LOT_SIZE = parseInt(g_config.get('nifty_lot_size'));
-const BANK_NIFTY_LOT_SIZE = parseInt(g_config.get('bank_nifty_lot_size'));
-const FIN_NIFTY_LOT_SIZE = parseInt(g_config.get('fin_nifty_lot_size'));
-const SENSEX_LOT_SIZE = parseInt(g_config.get('sensex_lot_size'));
-const BANKEX_LOT_SIZE = parseInt(g_config.get('bankex_lot_size'));
-const MIDCAP_LOT_SIZE = parseInt(g_config.get('midcap_lot_size'));
+            // },
+            'save': function () { // runs after values are saved
+                // log the saved value of the Name field
+                // this.log(this.get('Name'));
+                this.close();
+                reloadPage();
+            }
+        }
+    });
+
+    return GM_config;
+}
+const gmc = await initGM()
+
+const D_LEVEL = gmc.get('logging');
+const PRO_MODE = gmc.get('pro_mode');
+const MARGIN_METHOD = gmc.get('margin_method');
+
+const BANKNIFTY_QTY_FREEZE = parseInt(gmc.get('banknifty_freeze_quantity'));
+const NIFTY_QTY_FREEZE = parseInt(gmc.get('nifty_freeze_quantity'));
+const FINNIFTY_QTY_FREEZE = parseInt(gmc.get('finnifty_freeze_quantity'));
+const SENSEX_QTY_FREEZE = parseInt(gmc.get('sensex_freeze_quantity'));
+const BANKEX_QTY_FREEZE = parseInt(gmc.get('bankex_freeze_quantity'));
+const MIDCAP_QTY_FREEZE = parseInt(gmc.get('midcap_freeze_quantity'));
+
+const NIFTY_LOT_SIZE = parseInt(gmc.get('nifty_lot_size'));
+const BANK_NIFTY_LOT_SIZE = parseInt(gmc.get('bank_nifty_lot_size'));
+const FIN_NIFTY_LOT_SIZE = parseInt(gmc.get('fin_nifty_lot_size'));
+const SENSEX_LOT_SIZE = parseInt(gmc.get('sensex_lot_size'));
+const BANKEX_LOT_SIZE = parseInt(gmc.get('bankex_lot_size'));
+const MIDCAP_LOT_SIZE = parseInt(gmc.get('midcap_lot_size'));
 
 const positionsTable = "div.positions > section.open-positions.table-wrapper > div > div > div > table";
 const allDOMPaths = {
@@ -257,7 +381,7 @@ const allDOMPaths = {
     attrNameForInstrumentTR: "data-uid",
     tradingSymbol: "td.instrument > span.tradingsymbol",
     domPathWatchlistRow: "div.instruments > div > div.vddl-draggable.instrument",
-    domPathPendingOrdersTR: "div.pending-orders > div > div > table > tbody > tr",
+    domPathPendingOrdersTR: "div.pending-orders > div > div.table-wrapper > table > tbody > tr",
     domPathExecutedOrdersTR: "div.completed-orders > div > table > tbody > tr",
     domPathTradingSymbolInsideOrdersTR: "span.tradingsymbol > span",
     domPathStockNameInWatchlistRow: "span.nice-name",
@@ -1402,7 +1526,7 @@ function createPositionsDropdown() {
             });
 
             debug(stocksInList);
-            if (g_config.get('filter_watchlist')) {
+            if (gmc.get('filter_watchlist')) {
                 filterWatchlist(stocksInList, selectedGroup);
             }
         }
@@ -1741,7 +1865,7 @@ function showPositionDropdown(retry = true) {
     // Pass in the target node, as well as the observer options
     g_observer.observe(target, config);
 
-    if (g_config.get('auto_refresh_PnL') === true) {
+    if (gmc.get('auto_refresh_PnL') === true) {
         debug('going to observe pnl change');
         target = jQ(positionsTable+" > tfoot > tr > td")[3];
 
@@ -2118,7 +2242,7 @@ function filterOrders() { //notused
 
 
 const calculateMargin = async (selection) => {
-    if (g_config.get('show_margin') === true) {
+    if (gmc.get('show_margin') === true) {
         if (MARGIN_METHOD == MM_BASKET) {
             return calculateMarginUsingBasket(selection);
         } else {
@@ -2189,7 +2313,7 @@ const calculateMarginUsingBasket = async (selection) => {
         }
     };
     // debug(`config: ${config} payload: ${payload}`)
-    return await axios.post(`/oms/margins/basket?consider_positions=${g_config.get('include_existing_positions')}&mode=compact`, payload, config)
+    return await axios.post(`/oms/margins/basket?consider_positions=${gmc.get('include_existing_positions')}&mode=compact`, payload, config)
         .then(function (response) {
             //margin = response.data.data.initial!=null && response.data.data.initial!==undefined?response.data.data.initial.total:0;
             margin = response.data.data.final != null && response.data.data.final !== undefined ? response.data.data.final.total : 0;
@@ -2402,7 +2526,7 @@ function onSuCheckboxSelection() {
                 }
                 var t = ceQ + "CE & " + peQ + "PE";
 
-                var printText = `<section class="table-wrapper" random-att='betterKite'>
+                var printText = `<section class="table-wrapper" id="betterKiteSectionId" random-att='betterKite'>
                     <header class="row data-table-header"><h3 class="page-title small">betterKite</h3></header>
                     <div>
                         <div class="data-table fold-header">
@@ -2431,6 +2555,7 @@ function onSuCheckboxSelection() {
                 </section>`;
                 //jQ(jQ("div.positions > section.open-positions.table-wrapper > div > div > table > tfoot")[0]).append(`<tr random-att='marginsave'><td colspan='9'><span  class='pnl randomClassToHelpHide'> ${t} (Points: ${formatter.format(points)})</span></td></tr>`);
                 //jQ(jQ("div.positions > section.open-positions.table-wrapper > div > div > table > tfoot")[0]).append(`<tr random-att='marginsave'><td colspan='4'>Using P&L shown by Zerodha: ${createPnlText(pnl, maxPnl, margin)}</td><td colspan='4'>Using P&L calculated based on actual quantity: ${createPnlText(realPnl, maxPnl, margin)}</td></tr>`);
+                jQ("section#betterKiteSectionId").remove();
                 jQ(jQ("div.positions > section.open-positions.table-wrapper")[0]).after(printText);
             }
         });
@@ -2577,11 +2702,11 @@ function checkMarginSaving() {
 
             var increment = 0;
             if (symbol == indices[0]) {
-                increment = g_config.get('nf_hedge');
+                increment = gmc.get('nf_hedge');
             } else if (symbol == indices[1]) {
-                increment = g_config.get('bnf_hedge');
+                increment = gmc.get('bnf_hedge');
             } else {
-                increment = g_config.get('stock_hedge');
+                increment = gmc.get('stock_hedge');
             }
             var minStrike = Math.min(...marginData[symbol + '_strikes']) - parseInt(increment);
             var maxStrike = Math.max(...marginData[symbol + '_strikes']) + parseInt(increment);
@@ -2659,11 +2784,11 @@ function isLastDay(weekDay) { //1 monday
     var dt = new Date()
     // console.log("isLastDay " + tdy);
     dt.setDate(1)
-    dt.setMonth(dt.getMonth()+1)
+    dt.setMonth(dt.getMonth() + 1)
     dt.setDate(dt.getDate() - 1);
     // console.log("start Date " + dt);
 
-    while(dt.getDay() !== weekDay ) {
+    while (dt.getDay() !== weekDay) {
         dt.setDate(dt.getDate() - 1);
         // console.log(dt.toDateString())
         // console.log( dt.toDateString() == tdy.toDateString())
@@ -2914,11 +3039,11 @@ function main() {
         var transaction_type = spl[4];
 
         if (transaction_type == "SELL") {
-            order.price = parseFloat(order.price) + parseFloat(g_config.get('auto_trail_points'));
-            order.trigger_price = parseFloat(order.trigger_price) + parseFloat(g_config.get('auto_trail_points'));
+            order.price = parseFloat(order.price) + parseFloat(gmc.get('auto_trail_points'));
+            order.trigger_price = parseFloat(order.trigger_price) + parseFloat(gmc.get('auto_trail_points'));
         } else if (transaction_type == "BUY") {
-            order.price = parseFloat(order.price) - parseFloat(g_config.get('auto_trail_points'));
-            order.trigger_price = parseFloat(order.trigger_price) - parseFloat(g_config.get('auto_trail_points'));
+            order.price = parseFloat(order.price) - parseFloat(gmc.get('auto_trail_points'));
+            order.trigger_price = parseFloat(order.trigger_price) - parseFloat(gmc.get('auto_trail_points'));
         }
 
         debug(order);
@@ -2972,10 +3097,10 @@ function main() {
         var transaction_type = spl[4];
 
         if (transaction_type == "SELL") {
-            order.price = parseFloat(order.price) + parseFloat(g_config.get('auto_save_profit_points')) + parseFloat(g_config.get('auto_sl_points'));
+            order.price = parseFloat(order.price) + parseFloat(gmc.get('auto_save_profit_points')) + parseFloat(gmc.get('auto_sl_points'));
             order.trigger_price = order.price;
         } else if (transaction_type == "BUY") {
-            order.price = parseFloat(order.price) - parseFloat(g_config.get('auto_save_profit_points')) - parseFloat(g_config.get('auto_sl_points'));
+            order.price = parseFloat(order.price) - parseFloat(gmc.get('auto_save_profit_points')) - parseFloat(gmc.get('auto_sl_points'));
             order.trigger_price = order.price;
         }
 
@@ -3117,7 +3242,7 @@ function main() {
     const PIN1_TARGET = 'div.pinned-instruments > div.instrument-widget:nth-child(1) > span.wrap span.last-price';
     jQ(document).on('click', PIN1_TARGET, function () {
 
-        /*if (g_config.get('enable_nifty_monthly_weekly_range') == true) {*/
+        /*if (gmc.get('enable_nifty_monthly_weekly_range') == true) {*/
             tEv("kite", "showVixRangeMonthly", "click", "");
 
             var attr = jQ(this).attr('data-balloon');
@@ -3136,7 +3261,7 @@ function main() {
                         var strike = jQ(this).text().trim();
                         //jQ("div.vddl-draggable:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > span:nth-child(3)")
                         var vix = jQ(iv).closest("div.info").find("div.price > span.last-price").text().trim();
-                        var chg = vix / Math.sqrt(12); //g_config.get('nifty_vix_range_monthly_sqroot');
+                        var chg = vix / Math.sqrt(12); //gmc.get('nifty_vix_range_monthly_sqroot');
                         var range = strike * chg / 100;
                         var lNift = strike - range;
                         var uNift = parseFloat(strike) + parseFloat(range);
@@ -3144,12 +3269,12 @@ function main() {
                         // jQ(this).attr('data-balloon-pos', 'down');
                         // jQ(this).attr('data-balloon', `(M) ${lNift.toFixed(2)} - ${uNift.toFixed(2)}`);
 
-                    chg = vix / Math.sqrt(52); ////g_config.get('nifty_vix_range_weekly_sqroot');
+                    chg = vix / Math.sqrt(gmc.get('nifty_vix_range_weekly_sqroot')); ////;
                     range = strike * chg / 100;
                     var wlNift = strike - range;
                     var wuNift = parseFloat(strike) + parseFloat(range);
 
-                    chg = vix / Math.sqrt(365 - 104 - 13); ////g_config.get('nifty_vix_range_daily_sqroot');
+                    chg = vix / Math.sqrt(gmc.get('nifty_vix_range_daily_sqroot')); ////;
                     range = strike * chg / 100;
                     debug(range);
                     var dlNift = strike - range;
@@ -3287,7 +3412,7 @@ function main() {
             expiry = da + mo.toUpperCase();
         }
 
-        var h = prompt("Provide Symbol with Expiry w:NIFTYyymdd m:NIFTY24JUL", todayExpirySymbol+expiry);
+        var h = prompt("Provide Symbol with Expiry w:NIFTYyymdd m:NIFTY24JUL", todayExpirySymbol + expiry);
         if (h == null || h == "") {
             return;
         }
@@ -3315,7 +3440,7 @@ function main() {
         var s = 0;
         myAjaxSetup();
         myUrl = BASE_URL + `/oms/quote?i=${sym}`;
-        if (g_config.get('use_api')) {
+        if (gmc.get('use_api')) {
             myUrl = `https://api.kite.trade/quote?i=${sym}`;
         }
 
@@ -3348,7 +3473,7 @@ function main() {
                 debug("33333");
             }
         });
-        var n = g_config.get('marketlist_number_of_strikes');
+        var n = gmc.get('marketlist_number_of_strikes');
 
         var i = 50;
 
@@ -3651,7 +3776,7 @@ function main() {
                 sizeVar = jQ("#counter")[0].value
                 for(var index=0,i=a.length/2-2*sizeVar-1;i<a.length/2+2*sizeVar+1;i++)
                 {
-                    if (g_config.get('pe_ce_order'))
+                    if (gmc.get('pe_ce_order'))
                     {
                         if((index==0 && (a[i].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent==a[i+1].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent && i<a.length/2+2*sizeVar)) || (index>0 && (a[i].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent==a[i+1].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent  && i<a.length/2+2*sizeVar)))
                             index=i+1;
@@ -4353,7 +4478,7 @@ function getLastThursday(m, year) {
 }
 
 //code for SL trail
-waitForKeyElements("div.pending-orders > div > div > table > tbody", trailOrderButton);
+waitForKeyElements("div.pending-orders > div > div.table-wrapper > table > tbody", trailOrderButton);
 
 function trailOrderButton() {
     var allPendingOrderRows = jQ(allDOMPaths.domPathPendingOrdersTR);
@@ -4362,7 +4487,7 @@ function trailOrderButton() {
 
     allPendingOrderRows.each(function (rowIndex) {
         var workingRow = this;
-        var status = jQ(workingRow).find("td.order-status > span > span").text();
+        var status = jQ(workingRow).find("td.order-status > span.order-status-label > span").text();
         var dataUidInTR = jQ(workingRow).find("td.select-cell > div > input").attr("id");
         if (status == "TRIGGER PENDING") {
             debug('addig trail button');
@@ -4378,13 +4503,13 @@ function trailOrderButton() {
             var transaction_type = jQ(this).find("td.transaction-type > span").text();
             jQ(this).find("td.average-price").append(`<span id='trailButtonId' data='${dataUidInTR}|${orderId}|${price}|${tPrice}|${transaction_type}' class='text-label small order-status-label'><span>TRAIL</span></span>`);
             tippy('#trailButtonId', {
-                content: `This will change (inc. for sell, dec. for buy) the trigger price and price by ${g_config.get("auto_trail_points")} 'Auto trail points' in settings.`,
+                content: `This will change (inc. for sell, dec. for buy) the trigger price and price by ${gmc.get("auto_trail_points")} 'Auto trail points' in settings.`,
                 placement: 'bottom',
             });
 
             jQ(this).find("td.average-price").append(`<span id='saveProfitButtonId' style="margin-left: 2px;" data='${dataUidInTR}|${orderId}|${price}|${tPrice}|${transaction_type}' class='text-label small order-status-label'><span>Save Profit</span></span>`);
             tippy('#saveProfitButtonId', {
-                content: `This will change (inc. for sell, dec. for buy) the trigger price and price by ${g_config.get("auto_sl_points")} 'Auto sl points' + ${g_config.get("auto_save_profit_points")} 'Auto save profit points' in settings.`,
+                content: `This will change (inc. for sell, dec. for buy) the trigger price and price by ${gmc.get("auto_sl_points")} 'Auto sl points' + ${gmc.get("auto_save_profit_points")} 'Auto save profit points' in settings.`,
                 placement: 'bottom',
             });
         }
@@ -4408,7 +4533,7 @@ waitForKeyElements(orderDom, addOverrideOption);
 function addOverrideOption() {
     debug('addOverrideOption');
 
-    if ( g_config.get('auto_sl_order') === true &&
+    if ( gmc.get('auto_sl_order') === true &&
     (jQ("button.submit > span").text() === "Buy" || jQ("button.submit > span").text() === "Sell") &&
     (
         jQ("span.tradingsymbol > span.name").text().startsWith(indices[0]) ||
@@ -4450,7 +4575,7 @@ function addOverrideOption() {
         jQ("button.button-outline.cancel").after(div);
     }
 
-    if ( g_config.get('overide_qty_freeze_check_to_enable') === true &&
+    if ( gmc.get('overide_qty_freeze_check_to_enable') === true &&
     (jQ("button.submit > span").text() === "Buy" || jQ("button.submit > span").text() === "Sell") &&
     (
         jQ("span.tradingsymbol > span.name").text().startsWith(indices[0]) ||
@@ -4486,7 +4611,7 @@ function addOverrideOption() {
             debug(jQ("#overQtyFreezeCb").is(':checked'));
 
             var con = true;
-            if (g_config.get('qty_freeze_warning') === true) {
+            if (gmc.get('qty_freeze_warning') === true) {
                 con = confirm(`You are placing order for ${jQ("div.quantity > div:nth-child(1) > input:nth-child(2)").val()} Quantity. Are you sure?`);
             }
 
@@ -4507,7 +4632,7 @@ function addOverrideOption() {
         jQ("button.button-outline.cancel").after(div);
     }
 
-    if ( g_config.get('smart_limit_check_to_enable') === true &&
+    if ( gmc.get('smart_limit_check_to_enable') === true &&
     (jQ("button.submit > span").text() === "Buy" || jQ("button.submit > span").text() === "Sell") &&
     (
         jQ("span.tradingsymbol > span.name").text().startsWith(indices[0]) ||
@@ -4655,8 +4780,8 @@ function queryStringToJSON(qs) {
 
 function myAjaxSetup() {
     myAuth = `enctoken ${getCookie('enctoken')}`;
-    if (g_config.get('use_api')) {
-        myAuth = `token ${g_config.get('api_key')}:${g_config.get('api_access_token')}`;
+    if (gmc.get('use_api')) {
+        myAuth = `token ${gmc.get('api_key')}:${gmc.get('api_access_token')}`;
     }
 
     jQ.ajaxSetup({
@@ -4681,7 +4806,7 @@ function sendPlaceNewOrderRequest(order) {
         }
 
         myUrl = BASE_URL + `/oms/quote?i=${order.exchange}:${order.tradingsymbol}`;
-        if (g_config.get('use_api')) {
+        if (gmc.get('use_api')) {
             myUrl = `https://api.kite.trade/quote?i=${order.exchange}:${order.tradingsymbol}`;
         }
 
@@ -4754,7 +4879,7 @@ function sendPlaceNewOrderRequest(order) {
 
         myAjaxSetup();
         myUrl = BASE_URL + "/oms/orders/regular";
-        if (g_config.get('use_api')) {
+        if (gmc.get('use_api')) {
             myUrl = `https://api.kite.trade/orders/regular`;
         }
 
@@ -4772,14 +4897,14 @@ function sendPlaceNewOrderRequest(order) {
                     debug(order);
                     if (order.transaction_type == "SELL") {
                         order.transaction_type = "BUY";
-                        order.price = (parseFloat(order.price) + parseFloat(g_config.get("auto_sl_points"))).toString();
+                        order.price = (parseFloat(order.price) + parseFloat(gmc.get("auto_sl_points"))).toString();
                         order.trigger_price = order.price;
-                        order.trailing_stoploss = (g_config.get("auto_trail_points")).toString();
+                        order.trailing_stoploss = (gmc.get("auto_trail_points")).toString();
                     } else if (order.transaction_type == "BUY") {
                         order.transaction_type = "SELL";
-                        order.price = (parseFloat(order.price) - parseFloat(g_config.get("auto_sl_points"))).toString();
+                        order.price = (parseFloat(order.price) - parseFloat(gmc.get("auto_sl_points"))).toString();
                         order.trigger_price = order.price;
-                        order.trailing_stoploss = (g_config.get("auto_trail_points")).toString();
+                        order.trailing_stoploss = (gmc.get("auto_trail_points")).toString();
                     }
 
                     order.order_type = "SL";
