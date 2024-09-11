@@ -3759,11 +3759,14 @@ function main() {
     setTimeout(()=>toggleDropdown(window.location.pathname),3000);
 
     //sensibull title updates
-    var currentUrl = window.location.pathname;
-    if (currentUrl.includes('option-strategy-builder')) {
-        var sensibullTitleUpdateInterval = setInterval(()=>{document.title =document.querySelectorAll("div#builder-left-col-scrolling-div>div>div>div")[0].textContent.split(" ")[0]+""+ document.querySelectorAll("div#builder-left-col-scrolling-div>div>div>div:last-child>div:last-child>div:last-child>div:last-child>div:last-child>div:last-child")[0].textContent},1000);
+    var currentHost = window.location.host;
+    if (currentHost.includes('web.sensibull.com')) {
+        var sensibullTitleUpdateInterval = setInterval(()=>{
+            let txt = document.querySelectorAll("div#builder-left-col-scrolling-div>div>div>div")[0]?.textContent.split(" ")[0]+document.querySelectorAll("div#builder-left-col-scrolling-div>div>div>div:last-child>div:last-child>div:last-child>div:last-child>div:last-child>div:last-child")[0]?.textContent;
+            document.title = txt?txt:document.title;
+        },1000);
     }
-    if(window.location.pathname.includes("option-chain"))
+    if(window.location.pathname.includes("widget/option-chain"))
     {
         var sizeVar=5;
         setInterval(()=>{
