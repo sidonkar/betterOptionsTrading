@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         betterKite
 // @namespace    https://github.com/amit0rana/betterKite
-// @version      4.11
+// @version      4.13
 // @description  Introduces small features on top of kite app
-// @author       Amit and Updated by Onkar
+// @author       Amit with inputs from bsvinay, sidonkar, rbcdev
 // @match        https://kite.zerodha.com/*
 // @match        https://console.zerodha.com/*
 // @match        https://insights.sensibull.com/*

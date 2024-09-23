@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         betterKite
 // @namespace    https://github.com/amit0rana/betterKite
-// @version      4.11
+// @version      4.13
 // @description  Introduces small features on top of kite app
-// @author       Amit and Updated by Onkar
+// @author       Amit with inputs from bsvinay, sidonkar, rbcdev
 // @match        https://kite.zerodha.com/*
 // @match        https://console.zerodha.com/*
 // @match        https://web.sensibull.com/*
@@ -62,7 +62,7 @@ GM_addStyle(my_css);
 var context = window, options = "{    anonymizeIp: true,    colorDepth: true,    characterSet: true,    screenSize: true,    language: true}"; const hhistory = context.history, doc = document, nav = navigator || {}, storage = localStorage, encode = encodeURIComponent, pushState = hhistory.pushState, typeException = "exception", generateId = () => Math.random().toString(36), getId = () => (storage.cid || (storage.cid = generateId()), storage.cid), serialize = e => { var t = []; for (var o in e) e.hasOwnProperty(o) && void 0 !== e[o] && t.push(encode(o) + "=" + encode(e[o])); return t.join("&") }, track = (e, t, o, n, i, a, r) => { const c = "https://www.google-analytics.com/collect", s = serialize({ v: "1", ds: "web", aip: options.anonymizeIp ? 1 : void 0, tid: "UA-176741575-1", cid: getId(), t: e || "pageview", sd: options.colorDepth && screen.colorDepth ? `${screen.colorDepth}-bits` : void 0, dr: doc.referrer || void 0, dt: doc.title, dl: doc.location.origin + doc.location.pathname + doc.location.search, ul: options.language ? (nav.language || "").toLowerCase() : void 0, de: options.characterSet ? doc.characterSet : void 0, sr: options.screenSize ? `${(context.screen || {}).width}x${(context.screen || {}).height}` : void 0, vp: options.screenSize && context.visualViewport ? `${(context.visualViewport || {}).width}x${(context.visualViewport || {}).height}` : void 0, ec: t || void 0, ea: o || void 0, el: n || void 0, ev: i || void 0, exd: a || void 0, exf: void 0 !== r && !1 == !!r ? 0 : void 0 }); if (nav.sendBeacon) nav.sendBeacon(c, s); else { var d = new XMLHttpRequest; d.open("POST", c, !0), d.send(s) } }, tEv = (e, t, o, n) => track("event", e, t, o, n), tEx = (e, t) => track(typeException, null, null, null, null, e, t); hhistory.pushState = function (e) { return "function" == typeof history.onpushstate && hhistory.onpushstate({ state: e }), setTimeout(track, options.delay || 10), pushState.apply(hhistory, arguments) }, track(), context.ma = { tEv: tEv, tEx: tEx };
 
 window.jQ = jQuery.noConflict(true);
-const VERSION = "v4.07";
+const VERSION = "v4.13";
 const GM_HOLDINGS_NAME = "BK_HOLDINGS";
 const GMPositionsName = "BK_POSITIONS";
 const GMRefTradeName = "BK_REF_TRADES";
@@ -84,6 +84,12 @@ var g_subFilter = false;
 var g_subFilterData = false;
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const indices = ['NIFTY','BANKNIFTY','FINNIFTY','SENSEX','BANKEX','MIDCPNIFTY'];
+const indices_NIFTY = 0;
+const indices_BANKNIFTY = 1;
+const indices_FINNIFTY = 2;
+const indices_SENSEX = 3;
+const indices_BANKEX = 4;
+const indices_MIDCPNIFTY = 5;
 
 var g_color = ((jQ('html').attr('data-theme') == 'dark') ? '#191919' : 'white');
 
@@ -377,9 +383,10 @@ const MIDCAP_LOT_SIZE = parseInt(gmc.get('midcap_lot_size'));
 
 const positionsTable = "div.positions > section.open-positions.table-wrapper > div > div > div > table";
 const allDOMPaths = {
+    positionRowTS: "td.instrument > div > span.tradingsymbol",
     rowsFromHoldingsTable: "div.holdings > section > div > div > div > table > tbody > tr",
     attrNameForInstrumentTR: "data-uid",
-    tradingSymbol: "td.instrument > span.tradingsymbol",
+    tradingSymbol: "td.instrument > div > span.tradingsymbol",
     domPathWatchlistRow: "div.instruments > div > div.vddl-draggable.instrument",
     domPathPendingOrdersTR: "div.pending-orders > div > div.table-wrapper > table > tbody > tr",
     domPathExecutedOrdersTR: "div.completed-orders > div > table > tbody > tr",
@@ -582,17 +589,17 @@ function showLotsTippy(target, msg) {
             if (pos.instrument == "") return;
 
             var lot = 0;
-            if (pos.instrument.startsWith(indices[0])) {
+           if (pos.instrument.startsWith(indices[indices_NIFTY])) {
                 lot = Math.abs(pos.quantity / NIFTY_LOT_SIZE);
-            } else if (pos.instrument.startsWith(indices[1])) {
-                lot = Math.abs(pos.quantity / BANK_NIFTY_LOT_SIZE);
-            } else if (pos.instrument.startsWith(indices[2])) {
-                lot = Math.abs(pos.quantity / FIN_NIFTY_LOT_SIZE);
-            }else if (pos.instrument.startsWith(indices[3])) {
+            } else if (pos.instrument.startsWith(indices[indices_BANKNIFTY])) {
+                lot = Math.abs(pos.quantity / BANKNIFTY_LOT_SIZE);
+            } else if (pos.instrument.startsWith(indices[indices_FINNIFTY])) {
+                lot = Math.abs(pos.quantity / FINNIFTY_LOT_SIZE);
+            } else if (pos.instrument.startsWith(indices[indices_SENSEX])) {
                 lot = Math.abs(pos.quantity / SENSEX_LOT_SIZE);
-            } else if (pos.instrument.startsWith(indices[4])) {
+            } else if (pos.instrument.startsWith(indices[indices_BANKEX])) {
                 lot = Math.abs(pos.quantity / BANKEX_LOT_SIZE);
-            } else if (pos.instrument.startsWith(indices[5])) {
+            } else if (pos.instrument.startsWith(indices[indices_MIDCPNIFTY])) {
                 lot = Math.abs(pos.quantity / MIDCAP_LOT_SIZE);
             }
 
@@ -865,13 +872,12 @@ function assignHoldingTags() {
             var totalQ = holdingRow.quantity+holdingRow.pledged;
             let avgCost = !isNaN(holdingRow.avgCost)?holdingRow.avgCost:1000;//liquidbees
             jQ(tds[2]).find("div.randomClassholdingToHelpHide").remove();
-            jQ(tds[2]).append(`<div class="text-label grey randomClassholdingToHelpHide 2">${formatter.format(totalQ*holdingRow.avgCost)}</div>`);
-
              jQ(tds).find("div.randomClassholdingToHelpHide").remove();
+            jQ(tds[2]).append(`<div class="text-label grey randomClassholdingToHelpHide 2">${formatter.format(totalQ*holdingRow.avgCost)}</div>`);
             if (holdingRow.pledged > 0) {
                 jQ(tds[0]).append(`<div class="randomClassholdingToHelpHide">&nbsp;</div>`);
                 jQ(tds[1]).append(`<div class="text-label grey randomClassholdingToHelpHide qty">${totalQ}</div>`);
-                // jQ(tds[2]).append(`<div class="randomClassholdingToHelpHide">&nbsp;</div>`);
+                //jQ(tds[2]).append(`<div class="text-label grey randomClassholdingToHelpHide avgCost">${formatter.format(totalQ*holdingRow.avgCost)}</div>`);
                 jQ(tds[3]).append(`<div class="randomClassholdingToHelpHide ltp">&nbsp;</div>`);
                 jQ(tds[4]).append(`<div class="text-label grey randomClassholdingToHelpHide curVal">${formatter.format(totalQ*holdingRow.ltp)}</div>`);
                 let pnL=(holdingRow.ltp - holdingRow.avgCost)*totalQ;
@@ -1084,7 +1090,7 @@ function assignPositionTags() {
                 var p = positionRow.instrument;
                 if (p == "") return;
 
-                jQ(this).find(".open.instrument").append("<span random-att='tagAddBtn' title='Add tag' class='randomClassToHelpHide'><span class='randomClassToHelpHide'>&nbsp;</span><span id='positionTagAddIcon' class='text-label grey randomClassToHelpHide' value='" + p + "'>+</span></span>");
+                jQ(this).find("td.open.instrument > div").append("<span random-att='tagAddBtn' title='Add tag' class='randomClassToHelpHide' style='position:absolute;right:0'><span class='randomClassToHelpHide'>&nbsp;</span><span id='positionTagAddIcon' class='text-label grey randomClassToHelpHide' value='" + p + "'>+</span></span>");
             }
         },
         function () {
@@ -1214,9 +1220,9 @@ function createPositionsDropdown() {
                 var p = getSensibullZerodhaTradingSymbol(jQ(jQ(this).find('td')[2]).text());
 
                 var matchFound = false;
-                var tradingSymbolText = jQ(this).find(allDOMPaths.tradingSymbol).text();
                 var productType = jQ(this).find("td.product > span").text().trim();
                 var instrument = jQ(jQ(this).find("td")[2]).text();
+                var tradingSymbolText = instrument;
                 var product = jQ(jQ(this).find("td")[1]).text();
                 var qty = parseFloat(jQ(jQ(this).find("td")[3]).text().split(",").join(""));
                 var price = parseFloat(jQ(jQ(this).find("td")[4]).text().split(",").join(""));
@@ -1247,9 +1253,9 @@ function createPositionsDropdown() {
                     // }
                     if (matchFound) {
                         if (!stocksInList.includes(ts)) {
-                            if (ts == indices[1]) {
+                            if (ts == indices[indices_BANKNIFTY]) {
                                 stocksInList.push('NIFTY BANK');
-                            } else if (ts == indices[0]) {
+                            } else if (ts == indices[indices_NIFTY]) {
                                 stocksInList.push('NIFTY 50');
                             } else {
                                 stocksInList.push(ts);
@@ -1782,7 +1788,7 @@ function showPositionDropdown(retry = true) {
         // debug('before calling getSensibullZerodhaTradingSymbol ' + jQ(jQ(this).find('span.tradingsymbol')).text())
         // var text = getSensibullZerodhaTradingSymbol(jQ(jQ(this).find('span.tradingsymbol')).text());
         // var text = getSensibullZerodhaTradingSymbol(jQ(jQ(this).find('td')[2]).text());
-        var tradingSymbol = jQ(this).find("td.instrument > span.tradingsymbol").text();
+        var tradingSymbol = jQ(this).find(allDOMPaths.positionRowTS).text();
         if (tradingSymbol == "") return;
         var text = getSensibullZerodhaTradingSymbol(tradingSymbol);
 
@@ -3387,20 +3393,20 @@ function main() {
         switch (d) {
             case 1:
                 // todayExpirySymbol = "MIDCPNIFTY"
-                todayExpirySymbol = "BANKEX"
+                todayExpirySymbol = indices[indices_BANKEX]
                 //BANKEX24JUN58400PE
                 break;
             case 2:
-                todayExpirySymbol = "FINNIFTY"
+                todayExpirySymbol = indices[indices_FINNIFTY]
                 break;
             case 3:
-                todayExpirySymbol = "BANKNIFTY"
+                todayExpirySymbol = indices[indices_BANKNIFTY]
                 break;
             case 4:
-                todayExpirySymbol = "NIFTY"
+                todayExpirySymbol = indices[indices_NIFTY]
                 break;
             case 5:
-                todayExpirySymbol = "SENSEX"
+                todayExpirySymbol = indices[indices_SENSEX]
                 break;
             default:
                 debug('default')
@@ -3421,9 +3427,9 @@ function main() {
         if (sym.startsWith("FINN")) {
             sym = "NSE:NIFTY FIN SERVICE";
             iSym = "NIFTY FIN SERVICE";
-        } else if (sym.startsWith("BANKEX")) {
+        } else if (sym.startsWith(indices[indices_BANKEX])) {
             sym = "BSE:BANKEX";
-            iSym = "BANKEX";
+            iSym = indices[indices_BANKEX];
         } else if (sym.startsWith("NIFT")) {
             sym = "NSE:NIFTY 50";
             iSym = "NIFTY 50";
@@ -3433,9 +3439,9 @@ function main() {
         } else if (sym.startsWith("MID")) {
             sym = "NSE:NIFTY MID SELECT";
             iSym = "NIFTY MID SELECT";
-        } else if (sym.startsWith("SENSEX")) {
+        } else if (sym.startsWith(indices[indices_SENSEX])) {
             sym = "BSE:SENSEX";
-            iSym = "SENSEX";
+            iSym = indices[indices_SENSEX];
         }
         var s = 0;
         myAjaxSetup();
@@ -3477,7 +3483,7 @@ function main() {
 
         var i = 50;
 
-        if (h.startsWith("BANKEX") || h.startsWith("SENSEX")) {
+        if (h.startsWith(indices[indices_BANKEX]) || h.startsWith(indices[indices_SENSEX])) {
             i = 100;
         }
         console.log(s)
@@ -3494,7 +3500,7 @@ function main() {
             wt++;
             data.weight = wt
             data.segment = "NFO-OPT"
-            if (data.tradingsymbol.startsWith("BANKEX") || data.tradingsymbol.startsWith("SENSEX")) {
+            if (data.tradingsymbol.startsWith(indices[indices_BANKEX]) || data.tradingsymbol.startsWith(indices[indices_SENSEX])) {
                 data.segment = "BFO-OPT";
             }
             addToWatchListCall(data);
@@ -3515,7 +3521,7 @@ function main() {
             wt++;
             data.weight = wt
             data.segment = "NFO-OPT"
-            if (data.tradingsymbol.startsWith("BANKEX") || data.tradingsymbol.startsWith("SENSEX")) {
+            if (data.tradingsymbol.startsWith(indices[indices_BANKEX]) || data.tradingsymbol.startsWith(indices[indices_SENSEX])) {
                 data.segment = "BFO-OPT";
             }
             addToWatchListCall(data);
@@ -4539,12 +4545,12 @@ function addOverrideOption() {
     if ( gmc.get('auto_sl_order') === true &&
     (jQ("button.submit > span").text() === "Buy" || jQ("button.submit > span").text() === "Sell") &&
     (
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[0]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[1]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[2]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[3]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[4]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[5])
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_NIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_BANKNIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_FINNIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_BANKEX]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_MIDCPNIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_SENSEX])
     )
     ) {
         var div = document.createElement("div");
@@ -4581,12 +4587,12 @@ function addOverrideOption() {
     if ( gmc.get('overide_qty_freeze_check_to_enable') === true &&
     (jQ("button.submit > span").text() === "Buy" || jQ("button.submit > span").text() === "Sell") &&
     (
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[0]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[1]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[2]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[3]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[4]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[5])
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_NIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_BANKNIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_FINNIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_BANKEX]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_MIDCPNIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_SENSEX])
     )
     ) {
         var div = document.createElement("div");
@@ -4638,12 +4644,12 @@ function addOverrideOption() {
     if ( gmc.get('smart_limit_check_to_enable') === true &&
     (jQ("button.submit > span").text() === "Buy" || jQ("button.submit > span").text() === "Sell") &&
     (
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[0]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[1]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[2]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[3]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[4]) ||
-        jQ("span.tradingsymbol > span.name").text().startsWith(indices[5])
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_NIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_FINNIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_BANKEX]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_SENSEX]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_MIDCPNIFTY]) ||
+        jQ("span.tradingsymbol > span.name").text().startsWith(indices[indices_BANKNIFTY])
     )
     ) {
         var insert = `
@@ -4680,21 +4686,21 @@ function sendReplacement(data) {
         // }
         debug(`smartLiit ${jQ("#smartLimit").is(":checked")}`);
         debug(`overQtyFreezeCb ${jQ("#overQtyFreezeCb").is(':checked')}`);
-        debug(order.tradingsymbol.startsWith(indices[1]));
+        debug(order.tradingsymbol.startsWith(indices[indices_BANKNIFTY]));
         debug(`${order.quantity} > ${BANKNIFTY_QTY_FREEZE} ${order.quantity > BANKNIFTY_QTY_FREEZE}`);
         debug(
-            (order.tradingsymbol.startsWith(indices[1]) && order.quantity > BANKNIFTY_QTY_FREEZE
+            (order.tradingsymbol.startsWith(indices[indices_BANKNIFTY]) && order.quantity > BANKNIFTY_QTY_FREEZE
             ));
 
         if (jQ("#autoSlOrderCb").is(":checked") || jQ("#smartLimit").is(":checked") ||
         (jQ("#overQtyFreezeCb").is(':checked') &&
         (
-            (order.tradingsymbol.startsWith(indices[0]) && order.quantity > NIFTY_QTY_FREEZE) ||
-            (order.tradingsymbol.startsWith(indices[1]) && order.quantity > BANKNIFTY_QTY_FREEZE) ||
-            (order.tradingsymbol.startsWith(indices[2]) && order.quantity > FINNIFTY_QTY_FREEZE) ||
-            (order.tradingsymbol.startsWith(indices[3]) && order.quantity > SENSEX_QTY_FREEZE)	||
-            (order.tradingsymbol.startsWith(indices[4]) && order.quantity > BANKEX_QTY_FREEZE) ||
-            (order.tradingsymbol.startsWith(indices[5]) && order.quantity > MIDCAP_QTY_FREEZE)
+            (order.tradingsymbol.startsWith(indices[indices_BANKNIFTY]) && order.quantity > BANKNIFTY_QTY_FREEZE) ||
+            (order.tradingsymbol.startsWith(indices[indices_NIFTY]) && order.quantity > NIFTY_QTY_FREEZE) ||
+            (order.tradingsymbol.startsWith(indices[indices_FINNIFTY]) && order.quantity > FINNIFTY_QTY_FREEZE) ||
+            (order.tradingsymbol.startsWith(indices[indices_MIDCPNIFTY]) && order.quantity > MIDCAP_QTY_FREEZE) ||
+            (order.tradingsymbol.startsWith(indices[indices_BANKEX]) && order.quantity > BANKEX_QTY_FREEZE) ||
+            (order.tradingsymbol.startsWith(indices[indices_SENSEX]) && order.quantity > SENSEX_QTY_FREEZE)
         )
         )) {
             setTimeout(() => {
@@ -4717,12 +4723,12 @@ function sendReplacement(data) {
 
             if (jQ("#overQtyFreezeCb").is(':checked') &&
             (
-                (order.tradingsymbol.startsWith(indices[0]) && order.quantity > NIFTY_QTY_FREEZE) ||
-                (order.tradingsymbol.startsWith(indices[1]) && order.quantity > BANKNIFTY_QTY_FREEZE) ||
-                (order.tradingsymbol.startsWith(indices[2]) && order.quantity > FINNIFTY_QTY_FREEZE) ||
-                (order.tradingsymbol.startsWith(indices[3]) && order.quantity > SENSEX_QTY_FREEZE)	||
-                (order.tradingsymbol.startsWith(indices[4]) && order.quantity > BANKEX_QTY_FREEZE) ||
-                (order.tradingsymbol.startsWith(indices[5]) && order.quantity > MIDCAP_QTY_FREEZE)
+                (order.tradingsymbol.startsWith(indices[indices_BANKNIFTY]) && order.quantity > BANKNIFTY_QTY_FREEZE) ||
+                (order.tradingsymbol.startsWith(indices[indices_NIFTY]) && order.quantity > NIFTY_QTY_FREEZE) ||
+                (order.tradingsymbol.startsWith(indices[indices_FINNIFTY]) && order.quantity > FINNIFTY_QTY_FREEZE) ||
+                (order.tradingsymbol.startsWith(indices[indices_MIDCPNIFTY]) && order.quantity > MIDCAP_QTY_FREEZE) ||
+                (order.tradingsymbol.startsWith(indices[indices_BANKEX]) && order.quantity > BANKEX_QTY_FREEZE) ||
+                (order.tradingsymbol.startsWith(indices[indices_SENSEX]) && order.quantity > SENSEX_QTY_FREEZE)
             )
             ) {
                 _overrideQtyFreeze = true;
@@ -4853,17 +4859,17 @@ function sendPlaceNewOrderRequest(order) {
     var limit = qty; //we don't slice anything else other than nifty and banknifty
 
     if (_overrideQtyFreeze === true) {
-        if (order.tradingsymbol.startsWith(indices[0])) {
+        if (order.tradingsymbol.startsWith(indices[indices_NIFTY])) {
             limit = NIFTY_QTY_FREEZE;
-        } else if (order.tradingsymbol.startsWith(indices[1])) {
+        } else if (order.tradingsymbol.startsWith(indices[indices_BANKNIFTY])) {
             limit = BANKNIFTY_QTY_FREEZE; //old 2500
-        } else if (order.tradingsymbol.startsWith(indices[2])) {
+        } else if (order.tradingsymbol.startsWith(indices[indices_FINNIFTY])) {
             limit = FINNIFTY_QTY_FREEZE;
-        } else if (order.tradingsymbol.startsWith(indices[3])) {
+        } else if (order.tradingsymbol.startsWith(indices[indices_SENSEX])) {
             limit = SENSEX_QTY_FREEZE;
-        } else if (order.tradingsymbol.startsWith(indices[4])) {
+        } else if (order.tradingsymbol.startsWith(indices[indices_BANKEX])) {
             limit = BANKEX_QTY_FREEZE;
-        } else if (order.tradingsymbol.startsWith(indices[5])) {
+        } else if (order.tradingsymbol.startsWith(indices[indices_MIDCPNIFTY])) {
             limit = MIDCAP_QTY_FREEZE;
         }
     } else {
