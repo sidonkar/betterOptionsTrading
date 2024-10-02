@@ -1090,7 +1090,12 @@ function assignPositionTags() {
                 var p = positionRow.instrument;
                 if (p == "") return;
 
-                jQ(this).find("td.open.instrument > div").append("<span random-att='tagAddBtn' title='Add tag' class='randomClassToHelpHide' style='position:absolute;right:0'><span class='randomClassToHelpHide'>&nbsp;</span><span id='positionTagAddIcon' class='text-label grey randomClassToHelpHide' value='" + p + "'>+</span></span>");
+//                jQ(this).find("td.open.instrument > div").append("<span random-att='tagAddBtn' class='randomClassToHelpHide hoverClass' style='position:absolute;right:0'>"+
+//                                                                 "<span class='text-label blue riskOff randomClassToHelpHide' id='riskOff'>Risk OFF</span><span class='randomClassToHelpHide'>&nbsp;</span><span id='positionTagAddIcon' class='text-label grey randomClassToHelpHide' title='Add tag'  value='" +
+//                                                                 p + "'>+</span><span class='randomClassToHelpHide'>&nbsp;</span><span class='text-label blue riskOn randomClassToHelpHide' id='riskOn'>Risk ON</span></span>");
+                jQ(this).find("td.open.instrument > div").append("<span random-att='tagAddBtn' class='randomClassToHelpHide hoverClass' style='position:absolute;right:0'>"+
+                                                                 "<span class='randomClassToHelpHide'>&nbsp;</span><span id='positionTagAddIcon' class='text-label grey randomClassToHelpHide' title='Add tag'  value='" +
+                                                                 p + "'>+</span><span class='randomClassToHelpHide'>&nbsp;</span></span>");
             }
         },
         function () {
@@ -1993,6 +1998,142 @@ function calculateStraddle(){
     });
 }
 
+// GREEK CALCULATION START
+function calculateDaysDifference(date1, date2) {
+  const oneDay = 24 * 60 * 60 * 1000; // milliseconds in a day
+  // Convert dates to milliseconds
+  const date1Ms = date1.getTime();
+  const date2Ms = date2.getTime();
+
+  // Calculate the difference in milliseconds
+  const differenceMs = Math.abs(date1Ms - date2Ms);
+
+  // Convert back to days and round down
+  return Math.floor(differenceMs / oneDay);
+}
+
+//const date1 = new Date('2024-10-01');
+//const date2 = new Date('2024-10-09');
+
+//const daysDifference = calculateDaysDifference(date1, date2);
+
+//console.log(daysDifference);
+
+// erf function
+function erf(x) {
+       // This is a simple approximation,
+       // you might need a more accurate implementation for certain use cases
+       const a1 =  0.254829592;
+       const a2 = -0.284496736;
+       const a3 =  1.421413741;
+       const a4 = -1.453152027;
+       const a5 =  1.061405429;
+       const p  =  0.3275911;
+
+       const sign = x < 0 ? -1 : 1;
+       x = Math.abs(x);
+
+       const t = 1 / (1 + p * x);
+       const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+       return sign * y;
+   }
+
+
+
+// Manually implementing the cumulative distribution function (CDF) for the normal distribution
+function normCDF(x) {
+    return (1.0 + erf(x / Math.sqrt(2))) / 2.0;
+}
+
+// Probability density function (PDF) for the normal distribution
+function normPDF(x) {
+    return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+}
+
+function black76Call(S_f, K, T, sigma) {
+    const d1 = (Math.log(S_f / K) + (0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+    const d2 = d1 - sigma * Math.sqrt(T);
+    const callPrice = S_f * normCDF(d1) - K * normCDF(d2); // r = 0
+    return { callPrice, d1 };
+}
+
+function black76Put(S_f, K, T, sigma) {
+    const d1 = (Math.log(S_f / K) + (0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+    const d2 = d1 - sigma * Math.sqrt(T);
+    const putPrice = K * normCDF(-d2) - S_f * normCDF(-d1); // r = 0
+    return { putPrice, d1 };
+}
+
+function vega(S_f, K, T, sigma) {
+    const d1 = (Math.log(S_f / K) + (0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+    return S_f * normPDF(d1) * Math.sqrt(T); // r = 0
+}
+
+function impliedVolatilityBlack76Call(S_f, K, T, C_market, initialGuess = 0.2, tol = 1e-5, maxIter = 100) {
+    let sigma = initialGuess;
+    for (let i = 0; i < maxIter; i++) {
+        const { callPrice } = black76Call(S_f, K, T, sigma);
+        const diff = callPrice - C_market;
+
+        // Check for convergence
+        if (Math.abs(diff) < tol) {
+            return sigma;
+        }
+
+        sigma -= diff / vega(S_f, K, T, sigma);
+    }
+    return sigma; // Return the last computed sigma if no convergence
+}
+
+function impliedVolatilityBlack76Put(S_f, K, T, P_market, initialGuess = 0.2, tol = 1e-5, maxIter = 100) {
+    let sigma = initialGuess;
+    for (let i = 0; i < maxIter; i++) {
+        const { putPrice } = black76Put(S_f, K, T, sigma);
+        const diff = putPrice - P_market;
+
+        // Check for convergence
+        if (Math.abs(diff) < tol) {
+            return sigma;
+        }
+
+        sigma -= diff / vega(S_f, K, T, sigma);
+    }
+    return sigma; // Return the last computed sigma if no convergence
+}
+
+// Delta calculations
+function callDelta(S_f, K, T, sigma) {
+    const d1 = (Math.log(S_f / K) + (0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+    return normCDF(d1);
+}
+
+function putDelta(S_f, K, T, sigma) {
+    const d1 = (Math.log(S_f / K) + (0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+    return normCDF(d1) - 1;
+}
+
+// Example usage for Call
+//const S_f = 53046;   // Futures price
+//const K = 53700;     // Strike price
+//const T = 8/365;       // Time to expiration (1 year)
+//const C_market = 115.5; // Market price of the call option
+
+//const impliedVolCall = impliedVolatilityBlack76Call(S_f, K, T, C_market);
+//console.log("Implied Volatility (Call):", impliedVolCall);
+//console.log("Call Delta:", callDelta(S_f, K, T, impliedVolCall));
+
+// Example usage for Put
+//const P_market = 765.5; // Market price of the put option
+
+//const impliedVolPut = impliedVolatilityBlack76Put(S_f, K, T, P_market);
+//console.log("Implied Volatility (Put):", impliedVolPut);
+//console.log("Put Delta:", putDelta(S_f, K, T, impliedVolPut));
+
+// GREEK CALCULATION END
+
+
+
+
 function calculateATM(items){
     jQ(".atmCss").removeClass("atmCss");
     var indexName = items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent;
@@ -2109,7 +2250,7 @@ function toggleDropdown(currentUrl) {
 function simulateSelectBoxEvent() {
     debug('simulating tagSelector change ');
     var currentUrl = window.location.pathname;
-
+	calculateStraddle();
     var tagSelectorH = document.querySelector("#tagSelectorH");
     var tagSelectorP = document.querySelector("#tagSelectorP");
 
@@ -2437,7 +2578,7 @@ function updatePnl(forPositions = true) {
         pnl += parseFloat(v);
 
         if (forPositions) {
-            var instrument = jQ(jQ(this).find("td")[2]).text();
+            var instrument = jQ(jQ(this).find("td .tradingsymbol")[0]).text();
             if (instrument == "") return;
 
             var qty = parseFloat(jQ(jQ(this).find("td")[3]).text().split(",").join(""));
@@ -2447,6 +2588,70 @@ function updatePnl(forPositions = true) {
             if (data != null) {
                 selection.push(data);
             }
+
+            // Greek
+            //var data = instrument.split(" ");
+            var elm=instrument.trim().split(" ");
+            if(elm.length>=4)
+            {
+                if(elm.length==4 || elm.length==5)
+                {
+					if(elm[0]==nextElm[0] && elm[1]==nextElm[1] && elm[2]==nextElm[2]){
+                        if((elm[3]=="CE" && nextElm[3]=="PE") || (elm[3]=="PE" && nextElm[3]=="CE"))
+                        {
+                            calcFlag=true;
+							if(!calcSynthetic)
+							{
+								calcSynthetic=true;
+								displayCalcSynthetic=true;
+								let call = 0, put=0;
+
+								if(elm[3]=="CE")
+									call=+element.textContent,put=+items[i+1].textContent;
+								else
+									put=+element.textContent,call=+items[i+1].textContent;
+								synthetic=+elm[2] + (call - put);
+							}
+                        }
+                    }
+                    //if(elm[2]== calculateSpot(synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent))
+						//element.parentElement.parentElement.parentElement.parentElement.classList.add("atmCss")
+                }
+                else if(elm.length==6)
+                {
+					var strike = elm[4];
+                    var option = elm[5];
+                    const month = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+                    const indexMapping = [];
+                    indexMapping["MIDCPNIFTY"]="NIFTY MID SELECT",indexMapping["BANKNIFTY"]="NIFTY BANK",indexMapping["SENSEX"]="SENSEX",indexMapping["NIFTY"]="NIFTY 50",indexMapping["BANKEX"]="BANKEX",indexMapping["FINNIFTY"]="NIFTY FIN SERVICE";
+
+                    var oc = jQ(".vddl-list.list-flat span.nice-name").splice(0);
+                    jQ(this).find(".greekWrapper").remove();
+                    if(oc[1].textContent==indexMapping[elm[0]])
+                    {
+                        let S_f = jQ(".vddl-list.list-flat .synthetic").splice(0)[0].textContent.split(" ")[0];   // Synthetic Futures price
+                        let K = strike;     // Strike price
+                        const T = calculateDaysDifference(new Date(`${parseInt(elm[1])} ${elm[3]}`),new Date(new Date().getDate()+" "+month[new Date().getMonth()]))/365;       // Time to expiration (1 year)
+                        let C_market = price; // Market price of the call option
+
+                        if(option=="PE")
+                        {
+                            let impliedVolPut = impliedVolatilityBlack76Put(S_f, K, T, C_market);
+                            let putDeltaVal = putDelta(S_f, K, T, impliedVolPut);
+                            jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +  putDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+(impliedVolPut*100).toFixed(1))+"</span></span>";
+                        }
+                        else if (option=="CE")
+                        {
+                            let impliedVolCall = impliedVolatilityBlack76Call(S_f, K, T, C_market);
+                            let callDeltaVal = callDelta(S_f, K, T, impliedVolCall);
+                            jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" + callDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+(impliedVolCall*100).toFixed(1))+"</span></span>";
+                        }
+                    }
+                }
+                else if(elm.length==7)
+                {}
+            }
+
         }
     });
 
@@ -2595,7 +2800,7 @@ function getHoldingRowObject(row) {
     var tds = jQ(row).find("td");
     holding.instrument = jQ(jQ(tds[0]).find("span")[0]).text().trim();
     var spans = jQ(tds[1]).find("span");
-    if (spans.length > 1 && jQ(spans[spans.length - 2]).attr('data-balloon') == "Pledged") {
+    if (spans.length > 1 && jQ(spans[spans.length - 2]).attr('data-balloon') == "Pledged quantity") {
         //data-balloon=T1, Pledged
         holding.pledged = parseInt(jQ(spans[spans.length - 2]).text().trim().split(':')[1]);
         holding.quantity = parseInt(jQ(spans[spans.length - 1]).text().trim());
@@ -2876,6 +3081,15 @@ function main() {
          right: 50px;
          position: absolute;
     }
+    span.riskOff,span.riskOn{margin: 0 10px;cursor:pointer;}
+    span.greekWrapper {
+    float: right;
+}
+
+span.greekWrapper>span {
+    margin: 0 10px;
+    font-size: 0.7rem;
+}
     </style>`;
     jQ("head").append(cssStr);
     GM_registerMenuCommand("Reset Data (WARNING) " + VERSION, function () {
@@ -3352,6 +3566,7 @@ function main() {
         }
     });
 
+const mouseoverEvent = new Event('mouseenter');
 
     //click on clear Option Chain
     jQ(document).on('click', "#clearOptionChain", function () {
@@ -3359,7 +3574,6 @@ function main() {
         var response = window.confirm("This will clear the current watchlist, Do you want to continue?")
         if(response==false)
             return;
-        const mouseoverEvent = new Event('mouseenter');
         var optionChainLength = jQ(".vddl-draggable").length-1;
         var i=1;
         removeRow(i,optionChainLength);
@@ -3605,8 +3819,80 @@ function main() {
         }
     });
 
+    var strikeDiffIndexArr = {"NIFTY":50,"BANKNIFTY":100,"FINNIFTY":50,"SENSEX":100,"BANKEX":100,"MIDCAP":25};//options strike diff
+        //on click of + to assign tag to positions
+    jQ(document).on('click', "#riskOn", function () {
+            });
+
+    //on click of + to assign tag to positions
+    jQ(document).on('click', "#riskOff", function () {
+        debugger;
+        //tEv("kite", "positionsaddtag", "click", "");
+        var position = jQ(jQ(this).parent().parent().find(".tradingsymbol"))[0].textContent;
+         var elm=position.trim().split(" ");
+            if(elm.length>=4)
+            {
+                if(elm.length==4 || elm.length==5)
+                {
+					if(elm[0]==nextElm[0] && elm[1]==nextElm[1] && elm[2]==nextElm[2]){
+                        if((elm[3]=="CE" && nextElm[3]=="PE") || (elm[3]=="PE" && nextElm[3]=="CE"))
+                        {
+                            calcFlag=true;
+							if(!calcSynthetic)
+							{
+								calcSynthetic=true;
+								displayCalcSynthetic=true;
+								let call = 0, put=0;
+
+								if(elm[3]=="CE")
+									call=+element.textContent,put=+items[i+1].textContent;
+								else
+									put=+element.textContent,call=+items[i+1].textContent;
+								synthetic=+elm[2] + (call - put);
+							}
+                        }
+                    }
+                    //if(elm[2]== calculateSpot(synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent))
+						//element.parentElement.parentElement.parentElement.parentElement.classList.add("atmCss")
+                }
+                else if(elm.length==6)
+                {
+					var strike = elm[4],nextStrike=0;
+                    var option = elm[5];
+                    if(option=="PE")
+                    {
+                        nextStrike = elm[4]-strikeDiffIndexArr[elm[0]];
+                    }
+                    else if (option=="CE")
+                    {
+                        nextStrike = elm[4]+strikeDiffIndexArr[elm[0]];
+                    }
+                    var oc = jQ(".vddl-list.list-flat span.nice-name").splice(0);
+                    currOption = oc.filter(function (item){
+                        if(item.textContent.trim().split(" ")[4] == elm[4] && item.textContent.trim().split(" ")[5] == elm[5])
+                            return item;
+                    })
+                    nextOption = oc.filter(function (item){
+                        if(item.textContent.trim().split(" ")[4] == nextStrike && item.textContent.trim().split(" ")[5] == elm[5])
+                            return item;
+                    })
+                    if(nextOption.length==1 && currOption.length==1)
+                    {
+                       jQ(currOption).parent().parent().parent().parent()[0].dispatchEvent(mouseoverEvent);
+                        setTimeout(function (){
+                            jQ(jQ(jQ(jQ(currOption).parent().parent().parent().parent()[0])[0]).find("span.actions")[0]).find("button")[0].click()
+                        },0)
+                    }
+                }
+                else if(elm.length==7)
+                {}
+            }
+        // window.location.reload();
+    });
+
     //on click of + to assign tag to positions
     jQ(document).on('click', "#positionTagAddIcon", function () {
+
         tEv("kite", "positionsaddtag", "click", "");
         var position = jQ(this).attr('value');
         var userTag = prompt('Please provide tag name and color. For eg: MT.red or RT.blue or BS.green');
@@ -3635,9 +3921,6 @@ function main() {
                     jQ(positionSpan).append("<span random-att='tagName' class='randomClassToHelpHide'>&nbsp;</span><span id='idForPositionTagDeleteAction' tag='" + userTag + "' position='" + position + "' class='text-label " + color + " randomClassToHelpHide'>" + tn + "</span>");
                 }
             });
-
-
-        // window.location.reload();
     });
 
     //on click of a position tag. ask user if they want to remove the tag
