@@ -3060,7 +3060,7 @@ function main() {
     .text-green .text-label.grey.randomClassholdingToHelpHide{color: green}
     .text-red.text-label.grey.randomClassholdingToHelpHide{color: red!important;display: block;margin-top: 7px;padding: 5px;}
     .text-green.text-label.grey.randomClassholdingToHelpHide{color: green!important;display: block;margin-top: 7px;padding: 5px;}
-    button.atmBtn,input#counter{
+    button.atmBtn,input#counter,input#otmCounter{
          border: 1px solid;
          font-size: 0.8rem;
          padding: 3px 10px;
@@ -4057,31 +4057,61 @@ const mouseoverEvent = new Event('mouseenter');
     }
     if(window.location.pathname.includes("widget/option-chain"))
     {
-        var sizeVar=5;
+        var sizeVar=0;
         setInterval(()=>{
             if(jQ(".atmBtn").length==0)
             {
-                jQ("div#app>div>div:first-child").append("<div><button class='atmBtn' id='refreshMe'>Refresh</button><input type='number' id='counter' name='counter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><button class='atmBtn' id='atmBtn'>ATM +-</button></div>")
+                jQ("div#app>div>div:first-child").append("<div><button class='atmBtn' id='refreshMe'>Refresh</button><input type='number' id='otmCounter' name='otmCounter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><input type='number' id='counter' name='counter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><button class='atmBtn' id='atmBtn'>ATM +-</button></div>")
 
             jQ(document).on('click', "#atmBtn", function (e) {
                  var a = jQ(".MuiTableRow-root button.MuiButtonBase-root.MuiButton-root.MuiButton-text:last-child");
+                otmSizeVar = jQ("#otmCounter")[0].value
                 sizeVar = jQ("#counter")[0].value
-                for(var index=0,i=a.length/2-2*sizeVar-1;i<a.length/2+2*sizeVar+1;i++)
+                let atmIndex=2*jQ(".MuiTableRow-root").toArray().findIndex((i,j)=>{return jQ(i).find(".atm-strike").length>0});
+
+                for(let i=0,index=atmIndex-2-2*(1*sizeVar+1*otmSizeVar);i<2*(1*sizeVar+1*otmSizeVar)+1;i++)
+                {
+                    if(index>=atmIndex-2-2*sizeVar && index<=atmIndex-2+2*sizeVar)
+                    {
+                        if (gmc.get('pe_ce_order'))
+                        {
+                            jQ(a[index+1]).click();
+                            jQ(a[index]).click();
+                        }
+                        else
+                        {
+                            jQ(a[index]).click();
+                            jQ(a[index+1]).click();
+                        }
+                    }
+                    else
+                    {
+                        if(a[index].parentElement.parentElement.parentElement.classList.contains("itm-strike"))
+                        {
+                            jQ(a[index+1]).click();
+                        }
+                        else
+                        {
+                            jQ(a[index]).click();
+                        }
+                    }
+                    index+=2;
+                }
+   /*             for(let i=0,index=atmIndex-2-2*sizeVar;i<2*sizeVar+1;i++)
                 {
                     if (gmc.get('pe_ce_order'))
                     {
-                        if((index==0 && (a[i].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent==a[i+1].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent && i<a.length/2+2*sizeVar)) || (index>0 && (a[i].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent==a[i+1].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent  && i<a.length/2+2*sizeVar)))
-                            index=i+1;
-                        else if(index>0 && a[i].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent==a[i-1].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent)
-                            index=i-1;
-                        else
-                            index=i
+                        jQ(a[index+1]).click();
+                        jQ(a[index]).click();
                     }
                     else
-                        index=i
-                    jQ(a[index]).click();
+                    {
+                        jQ(a[index]).click();
+                        jQ(a[index+1]).click();
+                    }
+                    index+=2;
                 }
-            })
+     */     })
             jQ(document).on('click', "#refreshMe", function (e) {
                 sizeVar = jQ("#counter")[0].value
                 jQ(".atmBtn").off('click');
