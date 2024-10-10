@@ -4097,21 +4097,7 @@ const mouseoverEvent = new Event('mouseenter');
                     }
                     index+=2;
                 }
-   /*             for(let i=0,index=atmIndex-2-2*sizeVar;i<2*sizeVar+1;i++)
-                {
-                    if (gmc.get('pe_ce_order'))
-                    {
-                        jQ(a[index+1]).click();
-                        jQ(a[index]).click();
-                    }
-                    else
-                    {
-                        jQ(a[index]).click();
-                        jQ(a[index+1]).click();
-                    }
-                    index+=2;
-                }
-     */     })
+            })
             jQ(document).on('click', "#refreshMe", function (e) {
                 sizeVar = jQ("#counter")[0].value
                 jQ(".atmBtn").off('click');
