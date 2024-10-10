@@ -4057,11 +4057,11 @@ const mouseoverEvent = new Event('mouseenter');
     }
     if(window.location.pathname.includes("widget/option-chain"))
     {
-        var sizeVar=0;
+        var sizeVar=5;
         setInterval(()=>{
             if(jQ(".atmBtn").length==0)
             {
-                jQ("div#app>div>div:first-child").append("<div><button class='atmBtn' id='refreshMe'>Refresh</button><input type='number' id='otmCounter' name='otmCounter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><input type='number' id='counter' name='counter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><button class='atmBtn' id='atmBtn'>ATM +-</button></div>")
+                jQ("div#app>div>div:first-child").append("<div style='color:lightsalmon;font-size: 0.8rem;'><button class='atmBtn' id='refreshMe'>Refresh</button> OTM<input type='number' id='otmCounter' name='otmCounter' min='1' max='20' class='atmBtn' value='"+sizeVar*2+"' /> ATM<input type='number' id='counter' name='counter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><button class='atmBtn' id='atmBtn'>ATM +-</button></div>")
 
             jQ(document).on('click', "#atmBtn", function (e) {
                  var a = jQ(".MuiTableRow-root button.MuiButtonBase-root.MuiButton-root.MuiButton-text:last-child");
