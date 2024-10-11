@@ -383,10 +383,10 @@ const MIDCAP_LOT_SIZE = parseInt(gmc.get('midcap_lot_size'));
 
 const positionsTable = "div.positions > section.open-positions.table-wrapper > div > div > div > table";
 const allDOMPaths = {
-    positionRowTS: "td.instrument > div > span.tradingsymbol",
+    positionRowTS: "td.instrument > a > span.tradingsymbol",
     rowsFromHoldingsTable: "div.holdings > section > div > div > div > table > tbody > tr",
     attrNameForInstrumentTR: "data-uid",
-    tradingSymbol: "td.instrument > div > span.tradingsymbol",
+    tradingSymbol: "td.instrument > a > span.tradingsymbol",
     domPathWatchlistRow: "div.instruments > div > div.vddl-draggable.instrument",
     domPathPendingOrdersTR: "div.pending-orders > div > div.table-wrapper > table > tbody > tr",
     domPathExecutedOrdersTR: "div.completed-orders > div > table > tbody > tr",
@@ -1226,7 +1226,7 @@ function createPositionsDropdown() {
 
                 var matchFound = false;
                 var productType = jQ(this).find("td.product > span").text().trim();
-                var instrument = jQ(jQ(this).find("td")[2]).text();
+                var instrument = jQ(jQ(this).find("td span.tradingsymbol")[0]).text();
                 var tradingSymbolText = instrument;
                 var product = jQ(jQ(this).find("td")[1]).text();
                 var qty = parseFloat(jQ(jQ(this).find("td")[3]).text().split(",").join(""));
@@ -1421,7 +1421,7 @@ function createPositionsDropdown() {
                 //var p = dataUidInTR.split(".")[1];
                 debug('3');
                 // var tsym = jQ(jQ(this).find('td')[1]).text();
-                var tradingSymbolText = jQ(this).find("td.instrument > span.tradingsymbol").text();
+                var tradingSymbolText = jQ(this).find("td.instrument > a > span.tradingsymbol").text();
 
                 if (tradingSymbolText == "") return;
 
@@ -2000,16 +2000,17 @@ function calculateStraddle(){
 
 // GREEK CALCULATION START
 function calculateDaysDifference(date1, date2) {
-  const oneDay = 24 * 60 * 60 * 1000; // milliseconds in a day
+    date1.setHours("15");date1.setMinutes("30")
+    const oneDay = 24 * 60 * 60 * 1000; // milliseconds in a day
   // Convert dates to milliseconds
   const date1Ms = date1.getTime();
   const date2Ms = date2.getTime();
 
   // Calculate the difference in milliseconds
-  const differenceMs = Math.abs(date1Ms - date2Ms);
+  const differenceMs = Math.abs(date1Ms - date2Ms)==0?oneDay:Math.abs(date1Ms - date2Ms);
 
   // Convert back to days and round down
-  return Math.floor(differenceMs / oneDay);
+  return differenceMs / oneDay>1?Math.floor( differenceMs / oneDay) :  differenceMs / oneDay;
 }
 
 //const date1 = new Date('2024-10-01');
@@ -2479,6 +2480,8 @@ const getMarginCalculationData = (instrument, product, q, price) => {
     if (instrument == "") return null;
     // frame payload for SPAN calculation
     var tokens = instrument.replace(/\s+/g, ' ').split(" ");
+    if (tokens.length == 1) return null;
+
     //debug(tokens);
     var data = {};
     if (tokens[1] === "NSE" || tokens[1] === "BSE") { //buy: OAL BSE HOLDING, sell: OAL NSE SOLD HOLDING
@@ -2631,7 +2634,8 @@ function updatePnl(forPositions = true) {
                     {
                         let S_f = jQ(".vddl-list.list-flat .synthetic").splice(0)[0].textContent.split(" ")[0];   // Synthetic Futures price
                         let K = strike;     // Strike price
-                        const T = calculateDaysDifference(new Date(`${parseInt(elm[1])} ${elm[3]}`),new Date(new Date().getDate()+" "+month[new Date().getMonth()]))/365;       // Time to expiration (1 year)
+                        let dte = calculateDaysDifference(new Date(`${parseInt(elm[1])} ${elm[3]} ${new Date().getUTCFullYear()}`),new Date());
+                        let T = dte/365;       // Time to expiration (1 year)
                         let C_market = price; // Market price of the call option
 
                         if(option=="PE")
@@ -2826,7 +2830,7 @@ function getPositionRowObject(row) {
 
 
     position.pnl = jQ(jQ(row).find("td")[6]).text().split(",").join("");
-    position.instrument = jQ(jQ(row).find("td")[2]).text();
+    position.instrument = jQ(row).find("td span.tradingsymbol")[0].textContent;
 
     debug('position row ' + position.instrument);
 
@@ -3060,7 +3064,7 @@ function main() {
     .text-green .text-label.grey.randomClassholdingToHelpHide{color: green}
     .text-red.text-label.grey.randomClassholdingToHelpHide{color: red!important;display: block;margin-top: 7px;padding: 5px;}
     .text-green.text-label.grey.randomClassholdingToHelpHide{color: green!important;display: block;margin-top: 7px;padding: 5px;}
-    button.atmBtn,input#counter,input#otmCounter{
+    button.atmBtn,input#counter{
          border: 1px solid;
          font-size: 0.8rem;
          padding: 3px 10px;
@@ -4061,41 +4065,25 @@ const mouseoverEvent = new Event('mouseenter');
         setInterval(()=>{
             if(jQ(".atmBtn").length==0)
             {
-                jQ("div#app>div>div:first-child").append("<div style='color:lightsalmon;font-size: 0.8rem;'><button class='atmBtn' id='refreshMe'>Refresh</button> OTM<input type='number' id='otmCounter' name='otmCounter' min='1' max='20' class='atmBtn' value='"+sizeVar*2+"' /> ATM<input type='number' id='counter' name='counter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><button class='atmBtn' id='atmBtn'>ATM +-</button></div>")
+                jQ("div#app>div>div:first-child").append("<div><button class='atmBtn' id='refreshMe'>Refresh</button><input type='number' id='counter' name='counter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><button class='atmBtn' id='atmBtn'>ATM +-</button></div>")
 
             jQ(document).on('click', "#atmBtn", function (e) {
                  var a = jQ(".MuiTableRow-root button.MuiButtonBase-root.MuiButton-root.MuiButton-text:last-child");
-                otmSizeVar = jQ("#otmCounter")[0].value
                 sizeVar = jQ("#counter")[0].value
-                let atmIndex=2*jQ(".MuiTableRow-root").toArray().findIndex((i,j)=>{return jQ(i).find(".atm-strike").length>0});
-
-                for(let i=0,index=atmIndex-2-2*(1*sizeVar+1*otmSizeVar);i<2*(1*sizeVar+1*otmSizeVar)+1;i++)
+                for(var index=0,i=a.length/2-2*sizeVar-1;i<a.length/2+2*sizeVar+1;i++)
                 {
-                    if(index>=atmIndex-2-2*sizeVar && index<=atmIndex-2+2*sizeVar)
+                    if (gmc.get('pe_ce_order'))
                     {
-                        if (gmc.get('pe_ce_order'))
-                        {
-                            jQ(a[index+1]).click();
-                            jQ(a[index]).click();
-                        }
+                        if((index==0 && (a[i].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent==a[i+1].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent && i<a.length/2+2*sizeVar)) || (index>0 && (a[i].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent==a[i+1].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent  && i<a.length/2+2*sizeVar)))
+                            index=i+1;
+                        else if(index>0 && a[i].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent==a[i-1].parentElement.parentElement.parentElement.parentElement.childNodes[3].textContent)
+                            index=i-1;
                         else
-                        {
-                            jQ(a[index]).click();
-                            jQ(a[index+1]).click();
-                        }
+                            index=i
                     }
                     else
-                    {
-                        if(a[index].parentElement.parentElement.parentElement.classList.contains("itm-strike"))
-                        {
-                            jQ(a[index+1]).click();
-                        }
-                        else
-                        {
-                            jQ(a[index]).click();
-                        }
-                    }
-                    index+=2;
+                        index=i
+                    jQ(a[index]).click();
                 }
             })
             jQ(document).on('click', "#refreshMe", function (e) {
@@ -4421,9 +4409,9 @@ jQ(document).on('click', 'section.completed-orders-wrap.table-wrapper > div > di
 
     var variety = jQ(this).find("td.product").html().trim();
     debug(variety);
-    var tradingsymbol = jQ(this).find("td.instrument > span.tradingsymbol").text().trim();
+    var tradingsymbol = jQ(this).find("td.instrument > a > span.tradingsymbol").text().trim();
     debug(tradingsymbol);
-    var exchange = jQ(this).find("td.instrument > span.exchange").html().trim();
+    var exchange = jQ(this).find("td.instrument > a > span.exchange").html().trim();
     debug(exchange);
     var transactionType = jQ(this).find("td.transaction-type").text().trim();
     debug(transactionType);
