@@ -1544,8 +1544,6 @@ function createPositionsDropdown() {
             });
 
             jQ("#misFilterId").text("MIS (" + misCount + ")");
-            jQ("#exitedFilterId").text("EXITED (" + exitedCount + ")");
-            jQ("#nrmlFilterId").text("NRML (" + nrmlCount + ")");
             jQ("#peFilterId").text("PE (" + peCount + ")");
             jQ("#ceFilterId").text("CE (" + ceCount + ")");
             jQ("#optFilterId").text("OPT (" + optCount + ")");
@@ -1576,8 +1574,6 @@ function createPositionsDropdown() {
 
             if (g_subFilter) {
                 jQ("#misFilterId").hide();
-                jQ("#exitedFilterId").hide();
-                jQ("#nrmlFilterId").hide();
                 jQ("#peFilterId").hide();
                 jQ("#ceFilterId").hide();
                 jQ("#optFilterId").hide();
@@ -1589,8 +1585,6 @@ function createPositionsDropdown() {
 
             } else {
                 jQ("#misFilterId").show();
-                jQ("#exitedFilterId").show();
-                jQ("#nrmlFilterId").show();
                 jQ("#peFilterId").show();
                 jQ("#ceFilterId").show();
                 jQ("#optFilterId").show();
