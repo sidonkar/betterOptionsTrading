@@ -2597,60 +2597,34 @@ function updatePnl(forPositions = true) {
             var elm=instrument.trim().split(" ");
             if(elm.length>=4)
             {
-                if(elm.length==4 || elm.length==5)
+                const month = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+                const indexMapping = [];
+                indexMapping["MIDCPNIFTY"]="NIFTY MID SELECT",indexMapping["BANKNIFTY"]="NIFTY BANK",indexMapping["SENSEX"]="SENSEX",indexMapping["NIFTY"]="NIFTY 50",indexMapping["BANKEX"]="BANKEX",indexMapping["FINNIFTY"]="NIFTY FIN SERVICE";
+                let oc = jQ(".vddl-list.list-flat span.nice-name").splice(0);
+                jQ(this).find(".greekWrapper").remove();
+                if(elm.length==4){
+                    let scriptName = elm[0];
+                	let strike = elm[2];
+                    let option = elm[3];
+                    let dateVar = NaN;
+                    let monthVar = elm[1];
+                    assignGreeks.call(this,scriptName,strike,option,dateVar,monthVar,month,indexMapping,oc,price);
+                }
+                else if( elm.length==5)
                 {
-					if(elm[0]==nextElm[0] && elm[1]==nextElm[1] && elm[2]==nextElm[2]){
-                        if((elm[3]=="CE" && nextElm[3]=="PE") || (elm[3]=="PE" && nextElm[3]=="CE"))
-                        {
-                            calcFlag=true;
-							if(!calcSynthetic)
-							{
-								calcSynthetic=true;
-								displayCalcSynthetic=true;
-								let call = 0, put=0;
-
-								if(elm[3]=="CE")
-									call=+element.textContent,put=+items[i+1].textContent;
-								else
-									put=+element.textContent,call=+items[i+1].textContent;
-								synthetic=+elm[2] + (call - put);
-							}
-                        }
-                    }
-                    //if(elm[2]== calculateSpot(synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent))
-						//element.parentElement.parentElement.parentElement.parentElement.classList.add("atmCss")
+					let strike = elm[2];
+                    let option = elm[3];
+                    let dateVar = parseInt(elm[1]);
+                    let monthVar = elm[3];
                 }
                 else if(elm.length==6)
                 {
-					var strike = elm[4];
-                    var option = elm[5];
-                    const month = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-                    const indexMapping = [];
-                    indexMapping["MIDCPNIFTY"]="NIFTY MID SELECT",indexMapping["BANKNIFTY"]="NIFTY BANK",indexMapping["SENSEX"]="SENSEX",indexMapping["NIFTY"]="NIFTY 50",indexMapping["BANKEX"]="BANKEX",indexMapping["FINNIFTY"]="NIFTY FIN SERVICE";
-
-                    var oc = jQ(".vddl-list.list-flat span.nice-name").splice(0);
-                    jQ(this).find(".greekWrapper").remove();
-                    if(oc[1].textContent==indexMapping[elm[0]])
-                    {
-                        let S_f = jQ(".vddl-list.list-flat .synthetic").splice(0)[0].textContent.split(" ")[0];   // Synthetic Futures price
-                        let K = strike;     // Strike price
-                        let dte = calculateDaysDifference(new Date(`${parseInt(elm[1])} ${elm[3]} ${new Date().getUTCFullYear()}`),new Date());
-                        let T = dte/365;       // Time to expiration (1 year)
-                        let C_market = price; // Market price of the call option
-
-                        if(option=="PE")
-                        {
-                            let impliedVolPut = impliedVolatilityBlack76Put(S_f, K, T, C_market);
-                            let putDeltaVal = putDelta(S_f, K, T, impliedVolPut);
-                            jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +  putDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+(impliedVolPut*100).toFixed(1))+"</span></span>";
-                        }
-                        else if (option=="CE")
-                        {
-                            let impliedVolCall = impliedVolatilityBlack76Call(S_f, K, T, C_market);
-                            let callDeltaVal = callDelta(S_f, K, T, impliedVolCall);
-                            jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" + callDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+(impliedVolCall*100).toFixed(1))+"</span></span>";
-                        }
-                    }
+                    let scriptName = elm[0];
+					let strike = elm[4];
+                    let option = elm[5];
+                    let dateVar = parseInt(elm[1]);
+                    let monthVar = elm[3];
+                    assignGreeks.call(this,scriptName,strike,option,dateVar,monthVar,month,indexMapping,oc,price);
                 }
                 else if(elm.length==7)
                 {}
@@ -2663,6 +2637,69 @@ function updatePnl(forPositions = true) {
         calculateMargin(selection).then(margin => {
             updatePositionInfo(allVisibleRows.length, pnl, margin);
         });
+    }
+}
+
+function getLastDayOfWeekInMonth(year, month, targetDay) {
+  // Create a date object for the last day of the given month
+  let lastDay = new Date(year, month + 1, 0); // Last day of the month
+
+  // Get the day of the week for the last day (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  let lastDayOfWeek = lastDay.getDay();
+
+  // Calculate how many days to subtract to get to the target day of the week
+  let difference = (lastDayOfWeek >= targetDay) ? lastDayOfWeek - targetDay : lastDayOfWeek + (7 - targetDay);
+
+  // Subtract the difference to get the last occurrence of the target day
+  lastDay.setDate(lastDay.getDate() - difference);
+
+  return lastDay;
+}
+
+function getLastDaysOfWeekInMonth(year, month) {
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const lastDays = {};
+
+  // Iterate through each day of the week (0 = Sunday, ..., 6 = Saturday)
+  for (let i = 0; i < 7; i++) {
+    lastDays[daysOfWeek[i]] = getLastDayOfWeekInMonth(year, month, i);
+  }
+
+  return lastDays;
+}
+
+function assignGreeks(scriptName,strike,option,dateVar,monthVar,month,indexMapping,oc,price){
+    if(isNaN(dateVar))
+    {
+        const expiryDayMapping = {"NIFTY":"Thursday","BANKNIFTY":"Wednesday","SENSEX":"Friday","BANKEX":"Monday","FINIFTY":"Tuesday","MIDCPNIFTY":"Monday"}
+        let tempDate = new Date();
+        dateVar = new Date(""+tempDate.getDate()+" "+monthVar+" "+tempDate.getUTCFullYear());
+        let lastDaysOfWeek = getLastDaysOfWeekInMonth(tempDate.getUTCFullYear(), dateVar.getMonth());
+        dateVar = lastDaysOfWeek[expiryDayMapping[scriptName]];
+    }
+    if(oc[1].textContent==indexMapping[scriptName])
+    {
+        if(!jQ(".vddl-list.list-flat .synthetic") || jQ(".vddl-list.list-flat .synthetic").length==0 )
+            return;
+
+        let S_f = jQ(".vddl-list.list-flat .synthetic").splice(0)[0].textContent.split(" ")[0];   // Synthetic Futures price
+        let K = strike;     // Strike price
+        let dte = calculateDaysDifference(new Date(`${dateVar} ${monthVar} ${new Date().getUTCFullYear()}`),new Date());
+        let T = dte/365;       // Time to expiration (1 year)
+        let C_market = price; // Market price of the call option
+
+        if(option=="PE")
+        {
+            let impliedVolPut = impliedVolatilityBlack76Put(S_f, K, T, C_market);
+            let putDeltaVal = putDelta(S_f, K, T, impliedVolPut);
+            jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +  putDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+(impliedVolPut*100).toFixed(1))+"</span></span>";
+        }
+        else if (option=="CE")
+        {
+            let impliedVolCall = impliedVolatilityBlack76Call(S_f, K, T, C_market);
+            let callDeltaVal = callDelta(S_f, K, T, impliedVolCall);
+            jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" + callDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+(impliedVolCall*100).toFixed(1))+"</span></span>";
+        }
     }
 }
 
