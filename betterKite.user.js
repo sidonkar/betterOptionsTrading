@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         betterKite
 // @namespace    https://github.com/amit0rana/betterKite
-// @version      4.13
+// @version      4.14
 // @description  Introduces small features on top of kite app
 // @author       Amit with inputs from bsvinay, sidonkar, rbcdev
 // @match        https://kite.zerodha.com/*
@@ -62,7 +62,7 @@ GM_addStyle(my_css);
 var context = window, options = "{    anonymizeIp: true,    colorDepth: true,    characterSet: true,    screenSize: true,    language: true}"; const hhistory = context.history, doc = document, nav = navigator || {}, storage = localStorage, encode = encodeURIComponent, pushState = hhistory.pushState, typeException = "exception", generateId = () => Math.random().toString(36), getId = () => (storage.cid || (storage.cid = generateId()), storage.cid), serialize = e => { var t = []; for (var o in e) e.hasOwnProperty(o) && void 0 !== e[o] && t.push(encode(o) + "=" + encode(e[o])); return t.join("&") }, track = (e, t, o, n, i, a, r) => { const c = "https://www.google-analytics.com/collect", s = serialize({ v: "1", ds: "web", aip: options.anonymizeIp ? 1 : void 0, tid: "UA-176741575-1", cid: getId(), t: e || "pageview", sd: options.colorDepth && screen.colorDepth ? `${screen.colorDepth}-bits` : void 0, dr: doc.referrer || void 0, dt: doc.title, dl: doc.location.origin + doc.location.pathname + doc.location.search, ul: options.language ? (nav.language || "").toLowerCase() : void 0, de: options.characterSet ? doc.characterSet : void 0, sr: options.screenSize ? `${(context.screen || {}).width}x${(context.screen || {}).height}` : void 0, vp: options.screenSize && context.visualViewport ? `${(context.visualViewport || {}).width}x${(context.visualViewport || {}).height}` : void 0, ec: t || void 0, ea: o || void 0, el: n || void 0, ev: i || void 0, exd: a || void 0, exf: void 0 !== r && !1 == !!r ? 0 : void 0 }); if (nav.sendBeacon) nav.sendBeacon(c, s); else { var d = new XMLHttpRequest; d.open("POST", c, !0), d.send(s) } }, tEv = (e, t, o, n) => track("event", e, t, o, n), tEx = (e, t) => track(typeException, null, null, null, null, e, t); hhistory.pushState = function (e) { return "function" == typeof history.onpushstate && hhistory.onpushstate({ state: e }), setTimeout(track, options.delay || 10), pushState.apply(hhistory, arguments) }, track(), context.ma = { tEv: tEv, tEx: tEx };
 
 window.jQ = jQuery.noConflict(true);
-const VERSION = "v4.13";
+const VERSION = "v4.14";
 const GM_HOLDINGS_NAME = "BK_HOLDINGS";
 const GMPositionsName = "BK_POSITIONS";
 const GMRefTradeName = "BK_REF_TRADES";
@@ -74,12 +74,12 @@ const MM_BASKET = 'Basket';
 const MM_CALC = 'Calculator';
 var g_dropdownDisplay = DD_NONE;
 var g_showOnlyMISPositions = false;
-var g_showOnlyEXITEDPositions = false;
-var g_showOnlyNRMLPositions = false;
 var g_showOnlyPEPositions = false;
 var g_showOnlyCEPositions = false;
 var g_showOnlyFUTPositions = false;
 var g_showOnlyOPTPositions = false;
+var g_showOnlyEXITEDPositions = false;
+var g_showOnlyNRMLPositions = false;
 var g_subFilter = false;
 var g_subFilterData = false;
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -107,7 +107,7 @@ function initGM() {
             {
                 'label': 'Auto Refresh P&L', // Appears next to field
                 'type': 'checkbox', // Makes this setting a text field
-                'default': false, // Default value if user doesn't change it
+                'default': true, // Default value if user doesn't change it
                 'title': 'Give us your name!', // Add a tooltip (hover over text)
                 'section': ['Positions']
             },
@@ -296,42 +296,54 @@ function initGM() {
                 'default': false,
                 'section': ['Others']
             },
+        'nifty_lot_size':
+            {
+                'label': 'Nifty lot size',
+                'type': 'number',
+                'default': 25,
+            },
+        'banknifty_lot_size':
+            {
+                'label': 'Banknifty lot size',
+                'type': 'number',
+                'default': 15,
+            },
+        'finnifty_lot_size':
+            {
+                'label': 'Finnifty lot size',
+                'type': 'number',
+                'default': 25,
+            },
+        'sensex_lot_size':
+            {
+                'label': 'Sensex lot size',
+                'type': 'number',
+                'default': 10,
+            },
+        'bankex_lot_size':
+            {
+                'label': 'Bankex lot size',
+                'type': 'number',
+                'default': 15,
+            },
+        'midcap_lot_size':
+            {
+                'label': 'Midcap lot size',
+                'type': 'number',
+                'default': 75,
+            },
+            'full_width':
+            {
+                'label': 'Utilise full browser width',
+                'type': 'checkbox',
+                'default': true,
+            },
             'logging':
             {
                 'label': 'Logging',
                 'type': 'select',
                 'options': ['100', '2', '1'],
                 'default': '100',
-            },
-            'nifty_lot_size': {
-                'label': 'Nifty Lot Size',
-                'type': 'number',
-                'default': 25
-            },
-            'bank_nifty_lot_size': {
-                'label': 'Bank Nifty Lot Size',
-                'type': 'number',
-                'default': 15
-            },
-            'fin_nifty_lot_size': {
-                'label': 'Fin Nifty Lot Size',
-                'type': 'number',
-                'default': 25
-            },
-            'sensex_lot_size': {
-                'label': 'Sensex Lot Size',
-                'type': 'number',
-                'default': 10
-            },
-            'bankex_lot_size': {
-                'label': 'Bankex Lot Size',
-                'type': 'number',
-                'default': 15
-            },
-            'midcap_lot_size': {
-                'label': 'Nifty Midcap Lot Size',
-                'type': 'number',
-                'default': 75
             },
             'pe_ce_order': {
                 'label': 'PE CE ORDER',
@@ -375,8 +387,8 @@ const BANKEX_QTY_FREEZE = parseInt(gmc.get('bankex_freeze_quantity'));
 const MIDCAP_QTY_FREEZE = parseInt(gmc.get('midcap_freeze_quantity'));
 
 const NIFTY_LOT_SIZE = parseInt(gmc.get('nifty_lot_size'));
-const BANK_NIFTY_LOT_SIZE = parseInt(gmc.get('bank_nifty_lot_size'));
-const FIN_NIFTY_LOT_SIZE = parseInt(gmc.get('fin_nifty_lot_size'));
+const BANKNIFTY_LOT_SIZE = parseInt(gmc.get('banknifty_lot_size'));
+const FINNIFTY_LOT_SIZE = parseInt(gmc.get('finnifty_lot_size'));
 const SENSEX_LOT_SIZE = parseInt(gmc.get('sensex_lot_size'));
 const BANKEX_LOT_SIZE = parseInt(gmc.get('bankex_lot_size'));
 const MIDCAP_LOT_SIZE = parseInt(gmc.get('midcap_lot_size'));
@@ -1175,8 +1187,6 @@ function createPositionsDropdown() {
 
             var stocksInList = [];
             var misCount = 0;
-            var exitedCount = 0;
-            var nrmlCount = 0;
             var ceCount = 0;
             var peCount = 0;
             var futCount = 0;
@@ -1184,17 +1194,12 @@ function createPositionsDropdown() {
             var pnl = 0;
             var sellCount = 0;
             var buyCount = 0;
+            var exitedCount = 0;
+            var nrmlCount = 0;
 
             //logic to hide the rows in positions table not in our list
             var countPositionsDisplaying = 0;
             allPositionsRow.addClass("allHiddenRows");
-
-
-            // misCount = 0;
-            // ceCount = 0;
-            // peCount = 0;
-            // futCount = 0;
-            // optCount = 0;
 
             var selection = [];
             var optGrp = document.createElement("optgroup");
@@ -1281,22 +1286,6 @@ function createPositionsDropdown() {
                         matchFound = false;
                     }
                 }
-                if (g_showOnlyEXITEDPositions) {
-                    if (qty == 0) {
-                        //let filter decision pass
-                    } else {
-                        //overide filter decision and hide.
-                        matchFound = false;
-                    }
-                }
-                if (g_showOnlyNRMLPositions) {
-                    if (productType == "NRML") {
-                        //let filter decision pass
-                    } else {
-                        //overide filter decision and hide.
-                        matchFound = false;
-                    }
-                }
                 if (g_showOnlyCEPositions) {
                     if (instrument.includes(' CE')) {
                         //let filter decision pass
@@ -1333,6 +1322,23 @@ function createPositionsDropdown() {
                     }
                 }
 
+                if (g_showOnlyEXITEDPositions) {
+                    if (qty == 0) {
+                        //let filter decision pass
+                    } else {
+                        //overide filter decision and hide.
+                        matchFound = false;
+                    }
+                }
+                if (g_showOnlyNRMLPositions) {
+                    if (productType == "NRML") {
+                        //let filter decision pass
+                    } else {
+                        //overide filter decision and hide.
+                        matchFound = false;
+                    }
+                }
+
                 debug(`subfilter ${g_subFilter} d:${g_subFilterData} e:${getExpiryText(p)} s:${position.scrip}`)
                 if (g_subFilter) {
                     if (getExpiryText(p) == g_subFilterData || position.scrip == g_subFilterData) {
@@ -1355,12 +1361,6 @@ function createPositionsDropdown() {
                     if (productType == "MIS") {
                         misCount++;
                     }
-                    if (qty == 0) {
-                        exitedCount++;
-                    }
-                    if (productType == "NRML") {
-                        nrmlCount++;
-                    }
                     if (instrument.includes(' CE')) {
                         ceCount++;
                     }
@@ -1374,6 +1374,12 @@ function createPositionsDropdown() {
 
                     if (instrument.includes(' NFO') && !instrument.includes(' FUT')) {
                         optCount++;
+                    }
+                    if (qty == 0) {
+                        exitedCount++;
+                    }
+                    if (productType == "NRML") {
+                        nrmlCount++;
                     }
 
                     var data = getMarginCalculationData(instrument, product, qty, price);
@@ -1482,12 +1488,12 @@ function createPositionsDropdown() {
             });
 
             jQ("#misFilterId").text("MIS (" + misCount + ")");
-            jQ("#exitedFilterId").text("EXITED (" + exitedCount + ")");
-            jQ("#nrmlFilterId").text("NRML (" + nrmlCount + ")");
             jQ("#peFilterId").text("PE (" + peCount + ")");
             jQ("#ceFilterId").text("CE (" + ceCount + ")");
             jQ("#optFilterId").text("OPT (" + optCount + ")");
             jQ("#futFilterId").text("FUT (" + futCount + ")");
+            jQ("#exitedFilterId").text("EXITED (" + exitedCount + ")");
+            jQ("#nrmlFilterId").text("NRML (" + nrmlCount + ")");
 
             if (selectedType == 'scrip' && uniqueExpiryArray.length > 1) {
                 jQ('#subFilterDropdownId').append(optGrpExpiry);
@@ -1512,23 +1518,23 @@ function createPositionsDropdown() {
 
             if (g_subFilter) {
                 jQ("#misFilterId").hide();
-                jQ("#exitedFilterId").hide();
-                jQ("#nrmlFilterId").hide();
                 jQ("#peFilterId").hide();
                 jQ("#ceFilterId").hide();
                 jQ("#optFilterId").hide();
                 jQ("#futFilterId").hide();
+                jQ("#exitedFilterId").hide();
+                jQ("#nrmlFilterId").hide();
                 jQ("#resetSubId").show();
                 jQ('#allSubFilterId').prop('text', g_subFilterData);
 
             } else {
                 jQ("#misFilterId").show();
-                jQ("#exitedFilterId").show();
-                jQ("#nrmlFilterId").show();
                 jQ("#peFilterId").show();
                 jQ("#ceFilterId").show();
                 jQ("#optFilterId").show();
                 jQ("#futFilterId").show();
+                jQ("#exitedFilterId").show();
+                jQ("#nrmlFilterId").show();
                 jQ("#resetSubId").hide();
             }
 
@@ -2556,6 +2562,15 @@ function addWatchlistFilter(s) {
     oc.innerText = "OC";
     oc.setAttribute("role", "tab");
     jQ(allDOMPaths.watchlistSettingDiv).before(oc);
+
+    //jQ("#watchlistFilterId").remove();
+    var wFilter = document.createElement("a");
+    wFilter.id = 'watchlistFilterId';
+    wFilter.classList.add("randomClassToHelpHide");
+    wFilter.classList.add("item");
+    wFilter.innerText = "Filter";
+    wFilter.setAttribute("role", "tab");
+    jQ(allDOMPaths.watchlistSettingDiv).before(wFilter);
 }
 
 function updatePnl(forPositions = true) {
@@ -3050,7 +3065,8 @@ function isLastDay(weekDay) { //1 monday
 }
 
 // all behavior related actions go here.
-function main() {
+
+function fullWidth() {
     var cssStr = `<style>
     span.supS {
          position: absolute !important;
@@ -3133,6 +3149,11 @@ span.greekWrapper>span {
 }
     </style>`;
     jQ("head").append(cssStr);
+}
+function main() {
+    if (gmc.get('full_width')) {
+        fullWidth();
+    }
     GM_registerMenuCommand("Reset Data (WARNING) " + VERSION, function () {
         if (confirm('Are you sure you want to reset all tag data?')) {
             if (confirm('I am checking with you one last time, are you sure?')) {
