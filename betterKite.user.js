@@ -74,8 +74,6 @@ const MM_BASKET = 'Basket';
 const MM_CALC = 'Calculator';
 var g_dropdownDisplay = DD_NONE;
 var g_showOnlyMISPositions = false;
-var g_showOnlyEXITEDPositions = false;
-var g_showOnlyNRMLPositions = false;
 var g_showOnlyPEPositions = false;
 var g_showOnlyCEPositions = false;
 var g_showOnlyFUTPositions = false;
@@ -346,36 +344,6 @@ function initGM() {
                 'type': 'select',
                 'options': ['100', '2', '1'],
                 'default': '100',
-            },
-            'nifty_lot_size': {
-                'label': 'Nifty Lot Size',
-                'type': 'number',
-                'default': 25
-            },
-            'bank_nifty_lot_size': {
-                'label': 'Bank Nifty Lot Size',
-                'type': 'number',
-                'default': 15
-            },
-            'fin_nifty_lot_size': {
-                'label': 'Fin Nifty Lot Size',
-                'type': 'number',
-                'default': 25
-            },
-            'sensex_lot_size': {
-                'label': 'Sensex Lot Size',
-                'type': 'number',
-                'default': 10
-            },
-            'bankex_lot_size': {
-                'label': 'Bankex Lot Size',
-                'type': 'number',
-                'default': 15
-            },
-            'midcap_lot_size': {
-                'label': 'Nifty Midcap Lot Size',
-                'type': 'number',
-                'default': 75
             },
             'pe_ce_order': {
                 'label': 'PE CE ORDER',
@@ -1219,8 +1187,6 @@ function createPositionsDropdown() {
 
             var stocksInList = [];
             var misCount = 0;
-            var exitedCount = 0;
-            var nrmlCount = 0;
             var ceCount = 0;
             var peCount = 0;
             var futCount = 0;
@@ -1320,22 +1286,6 @@ function createPositionsDropdown() {
                         matchFound = false;
                     }
                 }
-                if (g_showOnlyEXITEDPositions) {
-                    if (qty == 0) {
-                        //let filter decision pass
-                    } else {
-                        //overide filter decision and hide.
-                        matchFound = false;
-                    }
-                }
-                if (g_showOnlyNRMLPositions) {
-                    if (productType == "NRML") {
-                        //let filter decision pass
-                    } else {
-                        //overide filter decision and hide.
-                        matchFound = false;
-                    }
-                }
                 if (g_showOnlyCEPositions) {
                     if (instrument.includes(' CE')) {
                         //let filter decision pass
@@ -1410,12 +1360,6 @@ function createPositionsDropdown() {
                     }
                     if (productType == "MIS") {
                         misCount++;
-                    }
-                    if (qty == 0) {
-                        exitedCount++;
-                    }
-                    if (productType == "NRML") {
-                        nrmlCount++;
                     }
                     if (instrument.includes(' CE')) {
                         ceCount++;
