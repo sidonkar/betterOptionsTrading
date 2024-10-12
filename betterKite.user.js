@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         betterKite
 // @namespace    https://github.com/amit0rana/betterKite
-// @version      4.13
+// @version      4.14
 // @description  Introduces small features on top of kite app
 // @author       Amit with inputs from bsvinay, sidonkar, rbcdev
 // @match        https://kite.zerodha.com/*
@@ -62,7 +62,7 @@ GM_addStyle(my_css);
 var context = window, options = "{    anonymizeIp: true,    colorDepth: true,    characterSet: true,    screenSize: true,    language: true}"; const hhistory = context.history, doc = document, nav = navigator || {}, storage = localStorage, encode = encodeURIComponent, pushState = hhistory.pushState, typeException = "exception", generateId = () => Math.random().toString(36), getId = () => (storage.cid || (storage.cid = generateId()), storage.cid), serialize = e => { var t = []; for (var o in e) e.hasOwnProperty(o) && void 0 !== e[o] && t.push(encode(o) + "=" + encode(e[o])); return t.join("&") }, track = (e, t, o, n, i, a, r) => { const c = "https://www.google-analytics.com/collect", s = serialize({ v: "1", ds: "web", aip: options.anonymizeIp ? 1 : void 0, tid: "UA-176741575-1", cid: getId(), t: e || "pageview", sd: options.colorDepth && screen.colorDepth ? `${screen.colorDepth}-bits` : void 0, dr: doc.referrer || void 0, dt: doc.title, dl: doc.location.origin + doc.location.pathname + doc.location.search, ul: options.language ? (nav.language || "").toLowerCase() : void 0, de: options.characterSet ? doc.characterSet : void 0, sr: options.screenSize ? `${(context.screen || {}).width}x${(context.screen || {}).height}` : void 0, vp: options.screenSize && context.visualViewport ? `${(context.visualViewport || {}).width}x${(context.visualViewport || {}).height}` : void 0, ec: t || void 0, ea: o || void 0, el: n || void 0, ev: i || void 0, exd: a || void 0, exf: void 0 !== r && !1 == !!r ? 0 : void 0 }); if (nav.sendBeacon) nav.sendBeacon(c, s); else { var d = new XMLHttpRequest; d.open("POST", c, !0), d.send(s) } }, tEv = (e, t, o, n) => track("event", e, t, o, n), tEx = (e, t) => track(typeException, null, null, null, null, e, t); hhistory.pushState = function (e) { return "function" == typeof history.onpushstate && hhistory.onpushstate({ state: e }), setTimeout(track, options.delay || 10), pushState.apply(hhistory, arguments) }, track(), context.ma = { tEv: tEv, tEx: tEx };
 
 window.jQ = jQuery.noConflict(true);
-const VERSION = "v4.13";
+const VERSION = "v4.14";
 const GM_HOLDINGS_NAME = "BK_HOLDINGS";
 const GMPositionsName = "BK_POSITIONS";
 const GMRefTradeName = "BK_REF_TRADES";
@@ -80,6 +80,8 @@ var g_showOnlyPEPositions = false;
 var g_showOnlyCEPositions = false;
 var g_showOnlyFUTPositions = false;
 var g_showOnlyOPTPositions = false;
+var g_showOnlyEXITEDPositions = false;
+var g_showOnlyNRMLPositions = false;
 var g_subFilter = false;
 var g_subFilterData = false;
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -296,6 +298,48 @@ function initGM() {
                 'default': false,
                 'section': ['Others']
             },
+        'nifty_lot_size':
+            {
+                'label': 'Nifty lot size',
+                'type': 'number',
+                'default': 25,
+            },
+        'banknifty_lot_size':
+            {
+                'label': 'Banknifty lot size',
+                'type': 'number',
+                'default': 15,
+            },
+        'finnifty_lot_size':
+            {
+                'label': 'Finnifty lot size',
+                'type': 'number',
+                'default': 25,
+            },
+        'sensex_lot_size':
+            {
+                'label': 'Sensex lot size',
+                'type': 'number',
+                'default': 10,
+            },
+        'bankex_lot_size':
+            {
+                'label': 'Bankex lot size',
+                'type': 'number',
+                'default': 15,
+            },
+        'midcap_lot_size':
+            {
+                'label': 'Midcap lot size',
+                'type': 'number',
+                'default': 75,
+            },
+            'full_width':
+            {
+                'label': 'Utilise full browser width',
+                'type': 'checkbox',
+                'default': true,
+            },
             'logging':
             {
                 'label': 'Logging',
@@ -375,8 +419,8 @@ const BANKEX_QTY_FREEZE = parseInt(gmc.get('bankex_freeze_quantity'));
 const MIDCAP_QTY_FREEZE = parseInt(gmc.get('midcap_freeze_quantity'));
 
 const NIFTY_LOT_SIZE = parseInt(gmc.get('nifty_lot_size'));
-const BANK_NIFTY_LOT_SIZE = parseInt(gmc.get('bank_nifty_lot_size'));
-const FIN_NIFTY_LOT_SIZE = parseInt(gmc.get('fin_nifty_lot_size'));
+const BANKNIFTY_LOT_SIZE = parseInt(gmc.get('banknifty_lot_size'));
+const FINNIFTY_LOT_SIZE = parseInt(gmc.get('finnifty_lot_size'));
 const SENSEX_LOT_SIZE = parseInt(gmc.get('sensex_lot_size'));
 const BANKEX_LOT_SIZE = parseInt(gmc.get('bankex_lot_size'));
 const MIDCAP_LOT_SIZE = parseInt(gmc.get('midcap_lot_size'));
@@ -1184,17 +1228,12 @@ function createPositionsDropdown() {
             var pnl = 0;
             var sellCount = 0;
             var buyCount = 0;
+            var exitedCount = 0;
+            var nrmlCount = 0;
 
             //logic to hide the rows in positions table not in our list
             var countPositionsDisplaying = 0;
             allPositionsRow.addClass("allHiddenRows");
-
-
-            // misCount = 0;
-            // ceCount = 0;
-            // peCount = 0;
-            // futCount = 0;
-            // optCount = 0;
 
             var selection = [];
             var optGrp = document.createElement("optgroup");
@@ -1333,6 +1372,23 @@ function createPositionsDropdown() {
                     }
                 }
 
+                if (g_showOnlyEXITEDPositions) {
+                    if (qty == 0) {
+                        //let filter decision pass
+                    } else {
+                        //overide filter decision and hide.
+                        matchFound = false;
+                    }
+                }
+                if (g_showOnlyNRMLPositions) {
+                    if (productType == "NRML") {
+                        //let filter decision pass
+                    } else {
+                        //overide filter decision and hide.
+                        matchFound = false;
+                    }
+                }
+
                 debug(`subfilter ${g_subFilter} d:${g_subFilterData} e:${getExpiryText(p)} s:${position.scrip}`)
                 if (g_subFilter) {
                     if (getExpiryText(p) == g_subFilterData || position.scrip == g_subFilterData) {
@@ -1374,6 +1430,12 @@ function createPositionsDropdown() {
 
                     if (instrument.includes(' NFO') && !instrument.includes(' FUT')) {
                         optCount++;
+                    }
+                    if (qty == 0) {
+                        exitedCount++;
+                    }
+                    if (productType == "NRML") {
+                        nrmlCount++;
                     }
 
                     var data = getMarginCalculationData(instrument, product, qty, price);
@@ -1488,6 +1550,8 @@ function createPositionsDropdown() {
             jQ("#ceFilterId").text("CE (" + ceCount + ")");
             jQ("#optFilterId").text("OPT (" + optCount + ")");
             jQ("#futFilterId").text("FUT (" + futCount + ")");
+            jQ("#exitedFilterId").text("EXITED (" + exitedCount + ")");
+            jQ("#nrmlFilterId").text("NRML (" + nrmlCount + ")");
 
             if (selectedType == 'scrip' && uniqueExpiryArray.length > 1) {
                 jQ('#subFilterDropdownId').append(optGrpExpiry);
@@ -1518,6 +1582,8 @@ function createPositionsDropdown() {
                 jQ("#ceFilterId").hide();
                 jQ("#optFilterId").hide();
                 jQ("#futFilterId").hide();
+                jQ("#exitedFilterId").hide();
+                jQ("#nrmlFilterId").hide();
                 jQ("#resetSubId").show();
                 jQ('#allSubFilterId').prop('text', g_subFilterData);
 
@@ -1529,6 +1595,8 @@ function createPositionsDropdown() {
                 jQ("#ceFilterId").show();
                 jQ("#optFilterId").show();
                 jQ("#futFilterId").show();
+                jQ("#exitedFilterId").show();
+                jQ("#nrmlFilterId").show();
                 jQ("#resetSubId").hide();
             }
 
@@ -2556,6 +2624,15 @@ function addWatchlistFilter(s) {
     oc.innerText = "OC";
     oc.setAttribute("role", "tab");
     jQ(allDOMPaths.watchlistSettingDiv).before(oc);
+
+    //jQ("#watchlistFilterId").remove();
+    var wFilter = document.createElement("a");
+    wFilter.id = 'watchlistFilterId';
+    wFilter.classList.add("randomClassToHelpHide");
+    wFilter.classList.add("item");
+    wFilter.innerText = "Filter";
+    wFilter.setAttribute("role", "tab");
+    jQ(allDOMPaths.watchlistSettingDiv).before(wFilter);
 }
 
 function updatePnl(forPositions = true) {
@@ -3050,6 +3127,82 @@ function isLastDay(weekDay) { //1 monday
 }
 
 // all behavior related actions go here.
+
+function fullWidth() {
+    var cssStr = `<style>
+    span.supS {
+         position: absolute !important;
+         bottom: -12px !important;
+         font-size: small !important;
+         background: var(--color-bg-default);
+         padding: 0 5px;
+         border-radius: 10px;
+         z-index: 1;
+         /* color: lightgray; */
+         border: 2px solid var(--color-border-1);
+    }
+	span.supS.synthetic {
+		font-size: 0.8rem !important;
+        bottom: 34px !important;
+        right: 10px;
+        letter-spacing: 1px;
+	}
+    .atmCss {
+        box-shadow: inset 0px 0px 5px 0px gray !important;
+    }
+    .app .wrapper {
+        max-width: 100%;
+    }
+	li#watchlistFilterId {
+		padding: 10px;
+	}
+	.index0,.index1 {
+		position: sticky !important;
+		top: 0;
+		z-index: 2;
+		background-color: var(--color-bg-default);
+	}
+	.index1 {
+		top: 46px;
+	}
+	.omnisearch {
+		transform: translateX(0px);
+		z-index: 3!important;
+	}
+    .instruments {
+        overflow: hidden;
+    }
+    .vddl-list.list-flat {
+        overflow: auto;
+    }
+    .text-red .text-label.grey.randomClassholdingToHelpHide{color: red}
+    .text-green .text-label.grey.randomClassholdingToHelpHide{color: green}
+    .text-red.text-label.grey.randomClassholdingToHelpHide{color: red!important;display: block;margin-top: 7px;padding: 5px;}
+    .text-green.text-label.grey.randomClassholdingToHelpHide{color: green!important;display: block;margin-top: 7px;padding: 5px;}
+    button.atmBtn,input#counter{
+         border: 1px solid;
+         font-size: 0.8rem;
+         padding: 3px 10px;
+         border-radius: 5px;
+         margin: 10px 5px;
+         font-weight: 800;
+         color: var(--primaryColor);
+         cursor:pointer;
+    }
+    input#counter {
+         width: 60px;
+    }
+    a#clearOptionChain {
+         padding : 10px;
+    }
+    .addTag{
+         top: 10px;
+         right: 50px;
+         position: absolute;
+    }
+    </style>`;
+    jQ("head").append(cssStr);
+}
 function main() {
     var cssStr = `<style>
     span.supS {
