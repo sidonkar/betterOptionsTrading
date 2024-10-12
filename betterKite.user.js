@@ -2625,13 +2625,6 @@ function updatePnl(forPositions = true) {
                     let monthVar = elm[1];
                     assignGreeks.call(this,scriptName,strike,option,dateVar,monthVar,month,indexMapping,oc,price);
                 }
-                else if( elm.length==5)
-                {
-					let strike = elm[2];
-                    let option = elm[3];
-                    let dateVar = parseInt(elm[1]);
-                    let monthVar = elm[3];
-                }
                 else if(elm.length==6)
                 {
                     let scriptName = elm[0];
@@ -2641,8 +2634,6 @@ function updatePnl(forPositions = true) {
                     let monthVar = elm[3];
                     assignGreeks.call(this,scriptName,strike,option,dateVar,monthVar,month,indexMapping,oc,price);
                 }
-                else if(elm.length==7)
-                {}
             }
 
         }
