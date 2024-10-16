@@ -210,17 +210,19 @@ function initGM() {
                 'type': 'number',
                 'default': 3,
             },
+            'show_margin':
+            {
+                'label': 'Show Margin',
+                'type': 'checkbox',
+                'default': false,
+                'section': ['Positions', 'Margin']
+            },
             'include_existing_positions':
             {
                 'label': 'Include existing positions for Margin calculation',
                 'type': 'checkbox',
                 'default': false,
                 'section': ['Positions', 'Margin']
-            },
-            'show_margin': {
-                'label': 'Include existing positions for Margin calculation',
-                'type': 'checkbox',
-                'default': false,
             },
             'margin_method':
             {
@@ -1835,22 +1837,37 @@ function showPositionDropdown(retry = true) {
     jQ("a.logo")[0].after(positionGroupdropdown);
 
     var div1 = document.createElement("div");
-    div1.style = "line-height:20%;text-align:right;";
-    var spanForCount = document.createElement("div");
+    div1.style = "padding: 10px;";
+    var spanForCount = document.createElement("span");
     spanForCount.classList.add("randomClassToHelpHide");
     spanForCount.classList.add("tagSelectorStyle");
-    spanForCount.style = "margin: 15px 0;margin-top: 15px;margin-right: 0px;margin-bottom: 15px;margin-left: 0px;font-size: 10.5px;border-right-style: solid;border-right-color: rgb(224, 224, 224);padding: 0 0px;"
+    spanForCount.style = "font-size: 0.9rem;border-right: 1px solid gray;padding: 0 10px;"
     spanForCount.id = 'stocksInTagCount';
-    spanForCount.addEventListener("click", () => updatePnl(true));
+    spanForCount.addEventListener("click", async() => {
+        let config = {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': `enctoken ${getCookie('enctoken')}`
+            }
+        };
+        let response = await axios.get("https://kite.zerodha.com/oms/user/margins", config);
+        jQ("#fundsStyle").text(formatter.format(response.data.data.equity.net))
+    });
 
-    var divForMargin = document.createElement("div");
+    var divForMargin = document.createElement("span");
     divForMargin.classList.add("randomClassToHelpHide");
     divForMargin.classList.add("tagSelectorStyle");
-    divForMargin.style = "font-size: 10.5px;"
+    divForMargin.style = "font-size: 10.5px; padding-left: 10px;"
     divForMargin.id = 'marginDiv';
+    var divForFunds = document.createElement("span");
+    divForFunds.classList.add("randomClassToHelpHide");
+    divForFunds.classList.add("tagSelectorStyle");
+    divForFunds.style = "font-size: 0.9rem;padding-left:10px;"
+    divForFunds.id = 'fundsStyle';
 
     div1.appendChild(spanForCount);
     div1.appendChild(divForMargin);
+    div1.appendChild(divForFunds);
     jQ(positionGroupdropdown).after(div1);
 
     g_dropdownDisplay = DD_POSITONS;
@@ -1928,6 +1945,8 @@ function showPositionDropdown(retry = true) {
 
         // Pass in the target node, as well as the observer options
         g_straddleSpotObserver.observe(target, config);
+}
+function getFunds(){
 }
 function calculateStraddle(){
     jQ(".supS").remove();
@@ -2546,15 +2565,8 @@ function addWatchlistFilter(s) {
     coc.setAttribute("role", "tab");
     //jQ(allDOMPaths.dasboardNicknameSelector).after(coc);
     jQ(s).before(coc);
-    return;
     //jQ("#watchlistFilterId").remove();
-    var wFilter = document.createElement("span");
-    wFilter.id = 'watchlistFilterId';
-    wFilter.classList.add("randomClassToHelpHide");
-    wFilter.classList.add("item");
-    wFilter.innerText = "Filter";
-    jQ(allDOMPaths.watchlistSettingIcon).before(wFilter);
-
+    return;
     var oc = document.createElement("a");
     oc.id = 'addAltOptionChain';
     oc.classList.add("randomClassToHelpHide");
