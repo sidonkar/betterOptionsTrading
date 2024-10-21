@@ -889,15 +889,15 @@ function assignHoldingTags() {
              jQ(tds).find("div.randomClassholdingToHelpHide").remove();
             jQ(tds[2]).append(`<div class="text-label grey randomClassholdingToHelpHide 2">${formatter.format(totalQ*holdingRow.avgCost)}</div>`);
             if (holdingRow.pledged > 0) {
-                jQ(tds[0]).append(`<div class="randomClassholdingToHelpHide">&nbsp;</div>`);
+                //jQ(tds[0]).append(`<div class="randomClassholdingToHelpHide">&nbsp;</div>`);
                 jQ(tds[1]).append(`<div class="text-label grey randomClassholdingToHelpHide qty">${totalQ}</div>`);
                 //jQ(tds[2]).append(`<div class="text-label grey randomClassholdingToHelpHide avgCost">${formatter.format(totalQ*holdingRow.avgCost)}</div>`);
-                jQ(tds[3]).append(`<div class="randomClassholdingToHelpHide ltp">&nbsp;</div>`);
-                jQ(tds[4]).append(`<div class="text-label grey randomClassholdingToHelpHide curVal">${formatter.format(totalQ*holdingRow.ltp)}</div>`);
+                //jQ(tds[3]).append(`<div class="randomClassholdingToHelpHide ltp">&nbsp;</div>`);
+                //jQ(tds[4]).append(`<div class="text-label grey randomClassholdingToHelpHide curVal">${formatter.format(totalQ*holdingRow.ltp)}</div>`);
                 let pnL=(holdingRow.ltp - holdingRow.avgCost)*totalQ;
                 totalPnL+=+pnL;
-                jQ(tds[5]).append(`<div class="text-label grey randomClassholdingToHelpHide pnl">${formatter.format(pnL)}</div>`);
-                jQ(tds[6]).append(`<div class="randomClassholdingToHelpHide netChange">&nbsp;</div>`);
+                //jQ(tds[5]).append(`<div class="text-label grey randomClassholdingToHelpHide pnl">${formatter.format(pnL)}</div>`);
+                //jQ(tds[6]).append(`<div class="randomClassholdingToHelpHide netChange">&nbsp;</div>`);
             }
             else
                 totalPnL+=(holdingRow.ltp-avgCost)*holdingRow.quantity;
@@ -3149,6 +3149,9 @@ function fullWidth() {
 span.greekWrapper>span {
     margin: 0 10px;
     font-size: 0.7rem;
+}
+div.page-holdings .container-right {
+    overflow-x: hidden;
 }
     </style>`;
     jQ("head").append(cssStr);
