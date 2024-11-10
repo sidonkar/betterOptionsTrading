@@ -1848,6 +1848,7 @@ function showPositionDropdown(retry = true) {
     spanForCount.classList.add("tagSelectorStyle");
     spanForCount.style = "font-size: 0.9rem;border-right: 1px solid gray;padding: 0 10px;"
     spanForCount.id = 'stocksInTagCount';
+    var inter=null;
     spanForCount.addEventListener("click", async() => {
         let config = {
             headers: {
@@ -1855,8 +1856,13 @@ function showPositionDropdown(retry = true) {
                 'Authorization': `enctoken ${getCookie('enctoken')}`
             }
         };
-        let response = await axios.get("https://kite.zerodha.com/oms/user/margins", config);
-        jQ("#fundsStyle").text(formatter.format(response.data.data.equity.net))
+        if(inter!=null)
+            clearInterval(inter),inter=null;
+        else
+            inter = setInterval(()=>{
+                let response = axios.get("https://kite.zerodha.com/oms/user/margins", config);
+                response.then((res)=>jQ("#fundsStyle").text(formatter.format(res.data.data.equity.net)+" ( "+formatter.format(res.data.data.equity.available.live_balance)+" )"))
+        },10000)
     });
 
     var divForMargin = document.createElement("span");
@@ -3211,6 +3217,8 @@ div.page-holdings .container-right,div.page-positions .container-right,div.page-
 span.greekOCWrapper {
     padding-left: 10px;
 }
+span#marginDiv{display:none}
+
     </style>`;
     jQ("head").append(cssStr);
 }
