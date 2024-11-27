@@ -109,11 +109,12 @@ const indices_SENSEX = 3;
 const indices_BANKEX = 4;
 const indices_MIDCPNIFTY = 5;
 
+const positionsTable = "div.positions > section.open-positions.table-wrapper > div > div > div > table";
 const allDOMPaths = {
     positionRowTS: "td.instrument > a > span.tradingsymbol",
     rowsFromHoldingsTable: "div.holdings > section > div > div > div > table > tbody > tr",
     attrNameForInstrumentTR: "data-uid",
-    tradingSymbol: "td.instrument > span.tradingsymbol",
+    tradingSymbol: "td.instrument >  a > span.tradingsymbol",
     domPathWatchlistRow: "div.instruments > div > div.vddl-draggable.instrument",
     domPathPendingOrdersTR: "div.pending-orders > div > div.table-wrapper > table > tbody > tr",
     domPathExecutedOrdersTR: "div.completed-orders > div > table > tbody > tr",
@@ -123,17 +124,19 @@ const allDOMPaths = {
     // domPathTabToChangeWatchlist: "ul.marketwatch-selector.list-flat > li",
     // domPathTabToChangeWatchlist: "div.marketwatch-selector.list-flat > a.item.selected
     domPathTabToChangeWatchlist: "div.marketwatch-selector.list-flat > a.item",
-    PathForPositions: "div.positions > section.open-positions.table-wrapper > div > div > div.table-wrapper > table > tbody > tr",
+    PathForPositions: positionsTable+" > tbody > tr",
     PathForBasketPositions: "div.basket-table > div > table > tbody > tr",
     domPathForPositionsDayHistory: "div.positions > section.day-positions.table-wrapper > div > div > div > table > tbody > tr",
     positionHeader: "header.row.data-table-header > h3",
+    dayPnLSelector : "section.day-positions.table-wrapper div div table tfoot tr td:nth-child(3)",
     //sensibullRows: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(2) > div > table > tbody > tr",
     sensibullRows: "tr.jss32.jss33",
     sensibullRowCheckbox: "th > div > span > span > input",
     sensibullScriptSelected: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div > div",
     domContextMenuButton: "span.context-menu-button",
     watchlistSettingIcon: "div.marketwatch-selector.list-flat > div.settings > a.initial",
-    watchlistSettingDiv: "div.marketwatch-selector.list-flat > div.settings"
+    watchlistSettingDiv: "div.marketwatch-selector.list-flat > div.settings",
+    dasboardNicknameSelector:"div.dashboard h1.page-title span"
     // span.settings-button.icon.icon-settings
 };
 //sensibullScriptSelected: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div > button > span.MuiButton-label"
@@ -463,56 +466,6 @@ function initGM() {
 
     return g;
 }
-const gmc = await initGM()
-
-const D_LEVEL = gmc.get('logging');
-const PRO_MODE = gmc.get('pro_mode');
-const MARGIN_METHOD = gmc.get('margin_method');
-
-const BANKNIFTY_QTY_FREEZE = parseInt(gmc.get('banknifty_freeze_quantity'));
-const NIFTY_QTY_FREEZE = parseInt(gmc.get('nifty_freeze_quantity'));
-const FINNIFTY_QTY_FREEZE = parseInt(gmc.get('finnifty_freeze_quantity'));
-const SENSEX_QTY_FREEZE = parseInt(gmc.get('sensex_freeze_quantity'));
-const BANKEX_QTY_FREEZE = parseInt(gmc.get('bankex_freeze_quantity'));
-const MIDCAP_QTY_FREEZE = parseInt(gmc.get('midcap_freeze_quantity'));
-
-const NIFTY_LOT_SIZE = parseInt(gmc.get('nifty_lot_size'));
-const BANKNIFTY_LOT_SIZE = parseInt(gmc.get('banknifty_lot_size'));
-const FINNIFTY_LOT_SIZE = parseInt(gmc.get('finnifty_lot_size'));
-const SENSEX_LOT_SIZE = parseInt(gmc.get('sensex_lot_size'));
-const BANKEX_LOT_SIZE = parseInt(gmc.get('bankex_lot_size'));
-const MIDCAP_LOT_SIZE = parseInt(gmc.get('midcap_lot_size'));
-
-const positionsTable = "div.positions > section.open-positions.table-wrapper > div > div > div > table";
-const allDOMPaths = {
-    positionRowTS: "td.instrument > a > span.tradingsymbol",
-    rowsFromHoldingsTable: "div.holdings > section > div > div > div > table > tbody > tr",
-    attrNameForInstrumentTR: "data-uid",
-    tradingSymbol: "td.instrument > a > span.tradingsymbol",
-    domPathWatchlistRow: "div.instruments > div > div.vddl-draggable.instrument",
-    domPathPendingOrdersTR: "div.pending-orders > div > div.table-wrapper > table > tbody > tr",
-    domPathExecutedOrdersTR: "div.completed-orders > div > table > tbody > tr",
-    domPathTradingSymbolInsideOrdersTR: "span.tradingsymbol > span",
-    domPathStockNameInWatchlistRow: "span.nice-name",
-    domPathMainInitiatorLabel: "h3.page-title.small > span",
-    // domPathTabToChangeWatchlist: "ul.marketwatch-selector.list-flat > li",
-    // domPathTabToChangeWatchlist: "div.marketwatch-selector.list-flat > a.item.selected
-    domPathTabToChangeWatchlist: "div.marketwatch-selector.list-flat > a.item",
-    PathForPositions: positionsTable+" > tbody > tr",
-    PathForBasketPositions: "div.basket-table > div > table > tbody > tr",
-    domPathForPositionsDayHistory: "div.positions > section.day-positions.table-wrapper > div > div > div > table > tbody > tr",
-    positionHeader: "header.row.data-table-header > h3",
-    dayPnLSelector : "section.day-positions.table-wrapper div div table tfoot tr td:nth-child(3)",
-    //sensibullRows: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(2) > div > table > tbody > tr",
-    sensibullRows: "tr.jss32.jss33",
-    sensibullRowCheckbox: "th > div > span > span > input",
-    sensibullScriptSelected: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div > div",
-    domContextMenuButton: "span.context-menu-button",
-    watchlistSettingIcon: "div.marketwatch-selector.list-flat > div.settings > a.initial",
-    watchlistSettingDiv: "div.marketwatch-selector.list-flat > div.settings",
-    dasboardNicknameSelector:"div.dashboard h1.page-title span"
-    // span.settings-button.icon.icon-settings
-};
 //sensibullScriptSelected: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div > button > span.MuiButton-label"
 //("#app > div > div > div > div > div > div > div.style__LeftContentWrapper-t0trse-21.kQiWSc > div.style__SearchableInstrumentWrapper-t0trse-10.duNZzV > div > button > span.MuiButton-label")
 
