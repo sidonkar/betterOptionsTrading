@@ -429,9 +429,9 @@ function initGM() {
         },
         'events':
         {
-            'init': function () { // runs after initialization completes
-                // //     // override saved value
-                // //     this.set('Name', 'Mike Medley');
+             'init': function () { // runs after initialization completes
+            // //     // override saved value
+            // //     this.set('Name', 'Mike Medley');
 
                 // //     // open frame
                 // //     this.open();
@@ -1882,6 +1882,7 @@ function showPositionDropdown(retry = true) {
     spanForCount.classList.add("tagSelectorStyle");
     spanForCount.style = "font-size: 0.9rem;border-right: 1px solid gray;padding: 0 10px;"
     spanForCount.id = 'stocksInTagCount';
+    var inter=null;
     spanForCount.addEventListener("click", async() => {
         let config = {
             headers: {
@@ -1889,8 +1890,13 @@ function showPositionDropdown(retry = true) {
                 'Authorization': `enctoken ${getCookie('enctoken')}`
             }
         };
-        let response = await axios.get("https://kite.zerodha.com/oms/user/margins", config);
-        jQ("#fundsStyle").text(formatter.format(response.data.data.equity.net))
+        if(inter!=null)
+            clearInterval(inter),inter=null;
+        else
+            inter = setInterval(()=>{
+                let response = axios.get("https://kite.zerodha.com/oms/user/margins", config);
+                response.then((res)=>jQ("#fundsStyle").text(formatter.format(res.data.data.equity.net)+" ( "+formatter.format(res.data.data.equity.available.live_balance)+" )"))
+        },10000)
     });
 
     var divForMargin = document.createElement("span");
@@ -1987,6 +1993,42 @@ function showPositionDropdown(retry = true) {
 }
 function getFunds(){
 }
+function calculateOCGreeks(){
+    jQ(".greekOCWrapper").remove();
+    //jQ(this).find(".greekOCWrapper").remove();
+    var items = jQ(".vddl-list.list-flat span.last-price").splice(0);
+    items.forEach(function(element,i) {
+            var elm=element.parentElement.parentElement.previousElementSibling.textContent.trim().split(" ");
+            if(elm.length>=4)
+            {
+                if(elm.length==4 || elm.length==5)
+                {
+                    if(elm[3]=="CE" || elm[3]=="PE"){
+                        let scriptName = elm[0];
+                        let strike = elm[2];
+                        let option = elm[3];
+                        let dateVar = NaN;
+                        let monthVar = elm[1];
+                        let price = +element.textContent.trim();
+                        assignGreeks.call(element.parentElement.parentElement.parentElement.parentElement,scriptName,strike,option,dateVar,monthVar,price,true);
+                    }
+                }
+                else if(elm.length==6 || elm.length==7)
+                {
+                    if(elm[5]=="CE" || elm[5]=="PE"){
+                        let scriptName = elm[0];
+                        let strike = elm[4];
+                        let option = elm[5];
+                        let dateVar = parseInt(elm[1]);
+                        let monthVar = elm[3];
+                        let price = +element.textContent.trim();
+                        assignGreeks.call(element.parentElement.parentElement.parentElement.parentElement,scriptName,strike,option,dateVar,monthVar,price,true);
+                    }
+                }
+            }
+    });
+}
+
 function calculateStraddle(){
     jQ(".supS").remove();
     var items = jQ(".vddl-list.list-flat span.last-price").splice(0);
@@ -2060,6 +2102,7 @@ function calculateStraddle(){
 
         }
     });
+    calculateOCGreeks();
 }
 
 // GREEK CALCULATION START
@@ -2623,6 +2666,9 @@ function addWatchlistFilter(s) {
     wFilter.setAttribute("role", "tab");
     jQ(allDOMPaths.watchlistSettingDiv).before(wFilter);
 }
+const month = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const indexMapping = [];
+indexMapping["MIDCPNIFTY"]="NIFTY MID SELECT",indexMapping["BANKNIFTY"]="NIFTY BANK",indexMapping["SENSEX"]="SENSEX",indexMapping["NIFTY"]="NIFTY 50",indexMapping["BANKEX"]="BANKEX",indexMapping["FINNIFTY"]="NIFTY FIN SERVICE";
 
 function updatePnl(forPositions = true) {
     var allVisibleRows;
@@ -2663,10 +2709,6 @@ function updatePnl(forPositions = true) {
             var elm=instrument.trim().split(" ");
             if(elm.length>=4)
             {
-                const month = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-                const indexMapping = [];
-                indexMapping["MIDCPNIFTY"]="NIFTY MID SELECT",indexMapping["BANKNIFTY"]="NIFTY BANK",indexMapping["SENSEX"]="SENSEX",indexMapping["NIFTY"]="NIFTY 50",indexMapping["BANKEX"]="BANKEX",indexMapping["FINNIFTY"]="NIFTY FIN SERVICE";
-                let oc = jQ(".vddl-list.list-flat span.nice-name").splice(0);
                 jQ(this).find(".greekWrapper").remove();
                 if(elm.length==4){
                     let scriptName = elm[0];
@@ -2674,7 +2716,7 @@ function updatePnl(forPositions = true) {
                     let option = elm[3];
                     let dateVar = NaN;
                     let monthVar = elm[1];
-                    assignGreeks.call(this,scriptName,strike,option,dateVar,monthVar,month,indexMapping,oc,price);
+                    assignGreeks.call(this,scriptName,strike,option,dateVar,monthVar,price);
                 }
                 else if(elm.length==6)
                 {
@@ -2683,7 +2725,7 @@ function updatePnl(forPositions = true) {
                     let option = elm[5];
                     let dateVar = parseInt(elm[1]);
                     let monthVar = elm[3];
-                    assignGreeks.call(this,scriptName,strike,option,dateVar,monthVar,month,indexMapping,oc,price);
+                    assignGreeks.call(this,scriptName,strike,option,dateVar,monthVar,price);
                 }
             }
 
@@ -2725,7 +2767,8 @@ function getLastDaysOfWeekInMonth(year, month) {
   return lastDays;
 }
 
-function assignGreeks(scriptName,strike,option,dateVar,monthVar,month,indexMapping,oc,price){
+function assignGreeks(scriptName,strike,option,dateVar,monthVar,price,isOC){
+    let oc = jQ(".vddl-list.list-flat span.nice-name").splice(0);
     if(isNaN(dateVar))
     {
         const expiryDayMapping = {"NIFTY":"Thursday","BANKNIFTY":"Wednesday","SENSEX":"Friday","BANKEX":"Monday","FINIFTY":"Tuesday","MIDCPNIFTY":"Monday"}
@@ -2749,13 +2792,23 @@ function assignGreeks(scriptName,strike,option,dateVar,monthVar,month,indexMappi
         {
             let impliedVolPut = impliedVolatilityBlack76Put(S_f, K, T, C_market);
             let putDeltaVal = putDelta(S_f, K, T, impliedVolPut);
-            jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +  putDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+(impliedVolPut*100).toFixed(1))+"</span></span>";
+            !isOC?jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
+                                                                 putDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
+                                                                 (impliedVolPut*100).toFixed(1))+"</span></span>":
+            jQ(this).find(".info").append("<span class='greekOCWrapper'><span class='text-label blue randomClassToHelpHide'>" +
+                                                                 putDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >"+
+                                                                 (impliedVolPut*100).toFixed(1))+"</span></span>";
         }
         else if (option=="CE")
         {
             let impliedVolCall = impliedVolatilityBlack76Call(S_f, K, T, C_market);
             let callDeltaVal = callDelta(S_f, K, T, impliedVolCall);
-            jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" + callDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+(impliedVolCall*100).toFixed(1))+"</span></span>";
+            !isOC?jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
+                                                                 callDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
+                                                                 (impliedVolCall*100).toFixed(1))+"</span></span>":
+            jQ(this).find(".info").append("<span class='greekOCWrapper'><span class='text-label blue randomClassToHelpHide'>" +
+                                                                 callDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >"+
+                                                                 (impliedVolCall*100).toFixed(1))+"</span></span>";
         }
     }
 }
@@ -3210,9 +3263,17 @@ span.greekWrapper>span {
     margin: 0 10px;
     font-size: 0.7rem;
 }
-div.page-holdings .container-right {
+div.page-holdings .container-right,div.page-positions .container-right,div.page-orders .container-right {
     overflow-x: hidden;
 }
+:root {
+    --left-content-width: 525px;
+}
+span.greekOCWrapper {
+    padding-left: 10px;
+}
+span#marginDiv{display:none}
+
     </style>`;
     jQ("head").append(cssStr);
 }
