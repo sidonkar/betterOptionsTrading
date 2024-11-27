@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         betterKite
 // @namespace    https://github.com/amit0rana/betterKite
-// @version      4.15
+// @version      5.01
 // @description  Introduces small features on top of kite app
 // @author       Amit with inputs from bsvinay, sidonkar, rbcdev
 // @match        https://kite.zerodha.com/*
@@ -15,10 +15,9 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_setClipboard
 // @grant        GM_getClipboard
-// @require      https://openuserjs.org/src/libs/sizzle/GM_config.js
+// @require      https://raw.githubusercontent.com/sizzlemctwizzle/GM_config/refs/heads/master/gm_config.js
 // @require      http://cdn.jsdelivr.net/gh/sidonkar/betterOptionsTrading/betterCommon.js
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js
-// @require      http://cdn.jsdelivr.net/gh/sidonkar/MonkeyConfig/monkeyconfig.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js
 // @require      http://cdn.jsdelivr.net/gh/kawanet/qs-lite/dist/qs-lite.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.27.0/moment.min.js
@@ -26,6 +25,7 @@
 // @require      https://unpkg.com/tippy.js@6
 // @require      https://cdn.jsdelivr.net/npm/sweetalert2@11
 // @require      https://cdn.jsdelivr.net/npm/toastify-js
+// @require      https://raw.githubusercontent.com/emn178/js-sha256/refs/heads/master/src/sha256.js
 // @resource     TOASTIFY_CSS https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css
 // @downloadURL  http://cdn.jsdelivr.net/gh/sidonkar/betterOptionsTrading/betterKite.user.js
 // @updateURL    http://cdn.jsdelivr.net/gh/sidonkar/betterOptionsTrading/betterKite.meta.js
@@ -62,10 +62,28 @@ GM_addStyle(my_css);
 var context = window, options = "{    anonymizeIp: true,    colorDepth: true,    characterSet: true,    screenSize: true,    language: true}"; const hhistory = context.history, doc = document, nav = navigator || {}, storage = localStorage, encode = encodeURIComponent, pushState = hhistory.pushState, typeException = "exception", generateId = () => Math.random().toString(36), getId = () => (storage.cid || (storage.cid = generateId()), storage.cid), serialize = e => { var t = []; for (var o in e) e.hasOwnProperty(o) && void 0 !== e[o] && t.push(encode(o) + "=" + encode(e[o])); return t.join("&") }, track = (e, t, o, n, i, a, r) => { const c = "https://www.google-analytics.com/collect", s = serialize({ v: "1", ds: "web", aip: options.anonymizeIp ? 1 : void 0, tid: "UA-176741575-1", cid: getId(), t: e || "pageview", sd: options.colorDepth && screen.colorDepth ? `${screen.colorDepth}-bits` : void 0, dr: doc.referrer || void 0, dt: doc.title, dl: doc.location.origin + doc.location.pathname + doc.location.search, ul: options.language ? (nav.language || "").toLowerCase() : void 0, de: options.characterSet ? doc.characterSet : void 0, sr: options.screenSize ? `${(context.screen || {}).width}x${(context.screen || {}).height}` : void 0, vp: options.screenSize && context.visualViewport ? `${(context.visualViewport || {}).width}x${(context.visualViewport || {}).height}` : void 0, ec: t || void 0, ea: o || void 0, el: n || void 0, ev: i || void 0, exd: a || void 0, exf: void 0 !== r && !1 == !!r ? 0 : void 0 }); if (nav.sendBeacon) nav.sendBeacon(c, s); else { var d = new XMLHttpRequest; d.open("POST", c, !0), d.send(s) } }, tEv = (e, t, o, n) => track("event", e, t, o, n), tEx = (e, t) => track(typeException, null, null, null, null, e, t); hhistory.pushState = function (e) { return "function" == typeof history.onpushstate && hhistory.onpushstate({ state: e }), setTimeout(track, options.delay || 10), pushState.apply(hhistory, arguments) }, track(), context.ma = { tEv: tEv, tEx: tEx };
 
 window.jQ = jQuery.noConflict(true);
-const VERSION = "v4.15";
+const VERSION = "v5.01";
 const GM_HOLDINGS_NAME = "BK_HOLDINGS";
 const GMPositionsName = "BK_POSITIONS";
 const GMRefTradeName = "BK_REF_TRADES";
+
+let D_LEVEL = D_LEVEL_NONE;
+let PRO_MODE ;
+let MARGIN_METHOD;
+
+let BANKNIFTY_QTY_FREEZE ;
+let NIFTY_QTY_FREEZE ;
+let FINNIFTY_QTY_FREEZE ;
+let SENSEX_QTY_FREEZE ;
+let BANKEX_QTY_FREEZE ;
+let MIDCAP_QTY_FREEZE ;
+
+let NIFTY_LOT_SIZE ;
+let BANKNIFTY_LOT_SIZE ;
+let FINNIFTY_LOT_SIZE ;
+let SENSEX_LOT_SIZE ;
+let BANKEX_LOT_SIZE ;
+let MIDCAP_LOT_SIZE ;
 
 const DD_NONE = '';
 const DD_HOLDINGS = 'H';
@@ -91,13 +109,48 @@ const indices_SENSEX = 3;
 const indices_BANKEX = 4;
 const indices_MIDCPNIFTY = 5;
 
+const positionsTable = "div.positions > section.open-positions.table-wrapper > div > div > div > table";
+const allDOMPaths = {
+    positionRowTS: "td.instrument > a > span.tradingsymbol",
+    rowsFromHoldingsTable: "div.holdings > section > div > div > div > table > tbody > tr",
+    attrNameForInstrumentTR: "data-uid",
+    tradingSymbol: "td.instrument >  a > span.tradingsymbol",
+    domPathWatchlistRow: "div.instruments > div > div.vddl-draggable.instrument",
+    domPathPendingOrdersTR: "div.pending-orders > div > div.table-wrapper > table > tbody > tr",
+    domPathExecutedOrdersTR: "div.completed-orders > div > table > tbody > tr",
+    domPathTradingSymbolInsideOrdersTR: "span.tradingsymbol > span",
+    domPathStockNameInWatchlistRow: "span.nice-name",
+    domPathMainInitiatorLabel: "h3.page-title.small > span",
+    // domPathTabToChangeWatchlist: "ul.marketwatch-selector.list-flat > li",
+    // domPathTabToChangeWatchlist: "div.marketwatch-selector.list-flat > a.item.selected
+    domPathTabToChangeWatchlist: "div.marketwatch-selector.list-flat > a.item",
+    PathForPositions: positionsTable+" > tbody > tr",
+    PathForBasketPositions: "div.basket-table > div > table > tbody > tr",
+    domPathForPositionsDayHistory: "div.positions > section.day-positions.table-wrapper > div > div > div > table > tbody > tr",
+    positionHeader: "header.row.data-table-header > h3",
+    dayPnLSelector : "section.day-positions.table-wrapper div div table tfoot tr td:nth-child(3)",
+    //sensibullRows: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(2) > div > table > tbody > tr",
+    sensibullRows: "tr.jss32.jss33",
+    sensibullRowCheckbox: "th > div > span > span > input",
+    sensibullScriptSelected: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div > div",
+    domContextMenuButton: "span.context-menu-button",
+    watchlistSettingIcon: "div.marketwatch-selector.list-flat > div.settings > a.initial",
+    watchlistSettingDiv: "div.marketwatch-selector.list-flat > div.settings",
+    dasboardNicknameSelector:"div.dashboard h1.page-title span"
+    // span.settings-button.icon.icon-settings
+};
+//sensibullScriptSelected: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div > button > span.MuiButton-label"
+//("#app > div > div > div > div > div > div > div.style__LeftContentWrapper-t0trse-21.kQiWSc > div.style__SearchableInstrumentWrapper-t0trse-10.duNZzV > div > button > span.MuiButton-label")
+
+
 var g_color = ((jQ('html').attr('data-theme') == 'dark') ? '#191919' : 'white');
+let gmc = await initGM()
 
 function initGM() {
     GM_registerMenuCommand("Settings ", function () {
         gmc.open();
     }, "s");
-    GM_config.init(
+    let g = new GM_config(
     {
         'id': 'betterKiteConfig', // The id used for this instance of GM_config
         'title': 'betterKite Settings', // Panel Title
@@ -122,6 +175,12 @@ function initGM() {
             {
                 'label': 'API Key',
                 'type': 'text',
+                'default': '',
+            },
+            'api_secret':
+            {
+                'label': 'API Secret',
+                'type': 'password',
                 'default': '',
             },
             'api_access_token':
@@ -291,6 +350,21 @@ function initGM() {
                 'type': 'checkbox',
                 'default': true,
             },
+            'bump_method':
+            {
+                'label': 'Price Bump Method',
+                'type': 'select',
+                'options': ['LTP', 'Delta', 'Best Price'],
+                'default': 'LTP',
+                'section': ['Orders']
+            },
+            'bump_delta':
+            {
+                'label': 'Bump Increment',
+                'type': 'number',
+                'default': 0.5,
+                'title': 'Used for bumping',
+            },
             'pro_mode':
             {
                 'label': 'Pro mode',
@@ -355,76 +429,43 @@ function initGM() {
         },
         'events':
         {
-            // 'init': function () { // runs after initialization completes
-            // //     // override saved value
-            // //     this.set('Name', 'Mike Medley');
+            'init': function () { // runs after initialization completes
+                // //     // override saved value
+                // //     this.set('Name', 'Mike Medley');
 
-            // //     // open frame
-            // //     this.open();
-            //     let auto_refresh_PnL = gmc.get('auto_refresh_PnL');
+                // //     // open frame
+                // //     this.open();
+                //     let auto_refresh_PnL = gmc.get('auto_refresh_PnL');
+                D_LEVEL = g.get('logging');
+                PRO_MODE = g.get('pro_mode');
+                MARGIN_METHOD = g.get('margin_method');
 
-            // },
-            'save': function () { // runs after values are saved
+                BANKNIFTY_QTY_FREEZE = parseInt(g.get('banknifty_freeze_quantity'));
+                NIFTY_QTY_FREEZE = parseInt(g.get('nifty_freeze_quantity'));
+                FINNIFTY_QTY_FREEZE = parseInt(g.get('finnifty_freeze_quantity'));
+                SENSEX_QTY_FREEZE = parseInt(g.get('sensex_freeze_quantity'));
+                BANKEX_QTY_FREEZE = parseInt(g.get('bankex_freeze_quantity'));
+                MIDCAP_QTY_FREEZE = parseInt(g.get('midcap_freeze_quantity'));
+
+                NIFTY_LOT_SIZE = parseInt(g.get('nifty_lot_size'));
+                BANKNIFTY_LOT_SIZE = parseInt(g.get('banknifty_lot_size'));
+                FINNIFTY_LOT_SIZE = parseInt(g.get('finnifty_lot_size'));
+                SENSEX_LOT_SIZE = parseInt(g.get('sensex_lot_size'));
+                BANKEX_LOT_SIZE = parseInt(g.get('bankex_lot_size'));
+                MIDCAP_LOT_SIZE = parseInt(g.get('midcap_lot_size'));
+            },
+            'save': function (a=true) { // runs after values are saved
                 // log the saved value of the Name field
                 // this.log(this.get('Name'));
                 this.close();
-                reloadPage();
+                if (a) 
+                    reloadPage();
             }
         }
     });
 
-    return GM_config;
+    return g;
 }
-const gmc = await initGM()
-
-const D_LEVEL = gmc.get('logging');
-const PRO_MODE = gmc.get('pro_mode');
-const MARGIN_METHOD = gmc.get('margin_method');
-
-const BANKNIFTY_QTY_FREEZE = parseInt(gmc.get('banknifty_freeze_quantity'));
-const NIFTY_QTY_FREEZE = parseInt(gmc.get('nifty_freeze_quantity'));
-const FINNIFTY_QTY_FREEZE = parseInt(gmc.get('finnifty_freeze_quantity'));
-const SENSEX_QTY_FREEZE = parseInt(gmc.get('sensex_freeze_quantity'));
-const BANKEX_QTY_FREEZE = parseInt(gmc.get('bankex_freeze_quantity'));
-const MIDCAP_QTY_FREEZE = parseInt(gmc.get('midcap_freeze_quantity'));
-
-const NIFTY_LOT_SIZE = parseInt(gmc.get('nifty_lot_size'));
-const BANKNIFTY_LOT_SIZE = parseInt(gmc.get('banknifty_lot_size'));
-const FINNIFTY_LOT_SIZE = parseInt(gmc.get('finnifty_lot_size'));
-const SENSEX_LOT_SIZE = parseInt(gmc.get('sensex_lot_size'));
-const BANKEX_LOT_SIZE = parseInt(gmc.get('bankex_lot_size'));
-const MIDCAP_LOT_SIZE = parseInt(gmc.get('midcap_lot_size'));
-
-const positionsTable = "div.positions > section.open-positions.table-wrapper > div > div > div > table";
-const allDOMPaths = {
-    positionRowTS: "td.instrument > a > span.tradingsymbol",
-    rowsFromHoldingsTable: "div.holdings > section > div > div > div > table > tbody > tr",
-    attrNameForInstrumentTR: "data-uid",
-    tradingSymbol: "td.instrument > a > span.tradingsymbol",
-    domPathWatchlistRow: "div.instruments > div > div.vddl-draggable.instrument",
-    domPathPendingOrdersTR: "div.pending-orders > div > div.table-wrapper > table > tbody > tr",
-    domPathExecutedOrdersTR: "div.completed-orders > div > table > tbody > tr",
-    domPathTradingSymbolInsideOrdersTR: "span.tradingsymbol > span",
-    domPathStockNameInWatchlistRow: "span.nice-name",
-    domPathMainInitiatorLabel: "h3.page-title.small > span",
-    // domPathTabToChangeWatchlist: "ul.marketwatch-selector.list-flat > li",
-    // domPathTabToChangeWatchlist: "div.marketwatch-selector.list-flat > a.item.selected
-    domPathTabToChangeWatchlist: "div.marketwatch-selector.list-flat > a.item",
-    PathForPositions: positionsTable+" > tbody > tr",
-    PathForBasketPositions: "div.basket-table > div > table > tbody > tr",
-    domPathForPositionsDayHistory: "div.positions > section.day-positions.table-wrapper > div > div > div > table > tbody > tr",
-    positionHeader: "header.row.data-table-header > h3",
-    dayPnLSelector : "section.day-positions.table-wrapper div div table tfoot tr td:nth-child(3)",
-    //sensibullRows: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(2) > div > table > tbody > tr",
-    sensibullRows: "tr.jss32.jss33",
-    sensibullRowCheckbox: "th > div > span > span > input",
-    sensibullScriptSelected: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div > div",
-    domContextMenuButton: "span.context-menu-button",
-    watchlistSettingIcon: "div.marketwatch-selector.list-flat > div.settings > a.initial",
-    watchlistSettingDiv: "div.marketwatch-selector.list-flat > div.settings",
-    dasboardNicknameSelector:"div.dashboard h1.page-title span"
-    // span.settings-button.icon.icon-settings
-};
 //sensibullScriptSelected: "#app > div > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div > button > span.MuiButton-label"
 //("#app > div > div > div > div > div > div > div.style__LeftContentWrapper-t0trse-21.kQiWSc > div.style__SearchableInstrumentWrapper-t0trse-10.duNZzV > div > button > span.MuiButton-label")
 
@@ -437,8 +478,6 @@ const referenceTrades = initReferenceTrades();
 const BASE_ORDERINFO_DOM = "div.modal-mask.order-info-modal > div.modal-wrapper > div.modal-container.layer-2";
 var g_tradingBasket = new Array();
 const BASE_PNL_REPORT = "#app > div.wrapper > div > div > h1";
-
-main();
 
 
 function closestStrike(a, b = 50) {
@@ -2876,6 +2915,27 @@ function getHoldingRowObject(row) {
     return holding;
 }
 
+function getOrderRowObject(row) {
+    var order = {};
+    
+    var dataUidInTR = jQ(jQ(row).find("td")[0]).find('input').attr('id');
+    order.orderId = dataUidInTR.split("NFO")[1]?dataUidInTR.split("NFO")[1]:dataUidInTR.split("BFO")[1];
+    order.exchange = dataUidInTR.match(new RegExp("(?:NFO|BSE|NSE)"))[0];
+    order.transactionType = jQ(row).find('td.transaction-type').text().trim();
+    order.symbol = jQ(row).find('td > a > span.tradingsymbol').text().trim();
+    order.tradingsymbol = dataUidInTR.match(new RegExp("(?:NRML|CNC|MIS)((.[\\s\\S]*))(?:NFO|BSE|NSE)"))[1];
+    order.instrument = `${order.exchange}:${order.tradingsymbol}`;
+    order.price = parseFloat(jQ(jQ(row).find("td.average-price")).text().split(",").join(""));
+    // order.price = 96.5;
+    //parseInt(jQ(row).find('td.average-price').text().trim().replace(/\,/g, ''), 10);
+    order.ltp = parseFloat(jQ(jQ(row).find("td.last-price")).text().split(",").join(""));
+    order.product = jQ(row).find('td.prodduct').text().trim()
+    
+    debug(order);
+
+    return order;
+}
+
 function getPositionRowObject(row) {
     //instrument what you see in the
     //tradingsymbl what you send NIFTY21JUN15750CE
@@ -3160,6 +3220,7 @@ function main() {
     if (gmc.get('full_width')) {
         fullWidth();
     }
+    
     GM_registerMenuCommand("Reset Data (WARNING) " + VERSION, function () {
         if (confirm('Are you sure you want to reset all tag data?')) {
             if (confirm('I am checking with you one last time, are you sure?')) {
@@ -3172,6 +3233,12 @@ function main() {
                 window.location.reload();
             }
         }
+
+    }, "r");
+
+
+    GM_registerMenuCommand("Create AT " , function () {
+        window.open("https://kite.zerodha.com/connect/login?v=3&api_key=" + gmc.get('api_key'), "_self");
 
     }, "r");
 
@@ -4197,29 +4264,133 @@ function saveContextMenuRow() {
 
 }
 
-const menuDom = "ul.context-menu-list.list-flat.layer-2";
+// const menuDom = "ul.context-menu-list.list-flat.layer-2";
 // waitForKeyElements(menuDom, menuShown);
 
-function menuShown() {
-    var currentUrl = window.location.pathname;
-    if (currentUrl.includes('orders')) {
-        debug('clicked on context menu in order screen');
-        tEv("kite", "orders", "context-menu", "");
-    }
-    var insert = `
-    <li class="addon-menu separator">
-        <ul class="list-flat">
-        <li ><a id="bumpOrderButtonId" href="javascript:void(0);"><span class="icon icon-swap_vert"></span> Bump Order</a></li>
-        </ul>
-    </li>
-    `;
-    debug('menuShown');
-    jQ(menuDom).append(insert);
-    jQ("#bumpOrderButtonId").click(function (evt) {
-        debug('bumpOrderButtonId clicked');
-        debug(getPositionRowObject(_currentContextMenuRow));
-        evt.stopPropagation();
-    });
+// function menuShown() {
+//     var currentUrl = window.location.pathname;
+//     if (currentUrl.includes('orders')) {
+//         debug('clicked on context menu in order screen');
+//         tEv("kite", "orders", "context-menu", "");
+//     }
+//     var insert = `
+//     <li class="addon-menu separator">
+//         <ul class="list-flat">
+//         <li ><a id="bumpOrderButtonId" href="javascript:void(0);"><span class="icon icon-swap_vert"></span> Bump Order</a></li>
+//         </ul>
+//     </li>
+//     `;
+//     debug('menuShown');
+//     jQ(menuDom).append(insert);
+//     jQ("#bumpOrderButtonId").click(function (evt) {
+//         debug('bumpOrderButtonId clicked');
+//         debug(getPositionRowObject(_currentContextMenuRow));
+//         evt.stopPropagation();
+//     });
+// }
+
+function showBumpButton() {
+    debug('showBumpButton');
+    jQ("#bumpOrder").remove();
+    var i = document.createElement("BUTTON");
+    i.type = 'button';
+    i.name = 'bumpOrder';
+    i.value = 'Bump by betterKite';
+    i.innerHTML = 'Bump by betterKite';
+    i.id = 'bumpOrder';
+    i.style = 'margin: 0px 2px;';
+    i.classList.add('button-small');
+    i.classList.add('button-green');
+
+
+    i.onclick = function () {
+        var orders = [];
+
+        var selectedOrders = jQ("tr.selected");
+        // var selectedOrders = $("#app > div.container.wrapper > div.container-right > div.page-content.orders > div > section.pending-orders-wrap.table-wrapper > div > div > table > tbody > tr.selected");
+        selectedOrders.each(function (rowIndex) {
+            var o = getOrderRowObject(this);
+
+            switch (gmc.get('bump_method')) {
+                case 'LTP':
+                    o.price = o.ltp;
+                    orders.push(o);
+                    break;
+                case 'Delta':
+                    if (o.transactionType == "SELL") {
+                        o.price = o.price - gmc.get('bump_delta')
+                    }
+                    if (o.transactionType == "BUY") {
+                        o.price = o.price + gmc.get('bump_delta')
+                    }
+                    orders.push(o);
+                    break;
+                case 'Best Price':
+                    getToast(`Best price not implemented yet.`).showToast();
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        debug(orders);
+        bumpOrders(orders);
+    };
+
+    // $(document).on('mouseenter', "#bumpOrder", function () {
+    //     if (encKey.length <= 0) {
+    //         $("#bumpOrder").prop('disabled', true);
+    //         $("#bumpOrder").html(`Bump Disabled (${encKey.length})`);
+    //     } else {
+    //         $("#bumpOrder").prop('disabled', false);
+    //         $("#bumpOrder").html(`Synch Bump (${encKey.length})`);
+    //     }
+    // });
+    //document.querySelector("#app > div.container.wrapper > div.container-right > div.page-content.orders > div > section.pending-orders-wrap.table-wrapper > div > div > table > tfoot > tr > td:nth-child(1)")
+
+    jQ("#app > div.container.wrapper > div.container-right > div.page-content.orders > div > section.pending-orders-wrap.table-wrapper > div > div > table > tfoot > tr > td:nth-child(1)").attr('colspan', '4');
+    // $("#app > div.container.wrapper > div.container-right > div.page-content.orders > div > section.pending-orders-wrap.table-wrapper > div > div > table > tfoot > tr > td:nth-child(1) > button").after(i);
+    jQ("button:contains('Cancel')").after(i);
+}
+function bumpOrders(orders) {
+    debug('bump order');
+
+    for (const order of orders) {
+    // orders.each(function (order) {
+        // jQ.post(BASE_URL + "/bumpOrders",
+        //     { 'data': orders, 'key': encKey, 'by_user': $('span.user-id').text().trim() },
+        //     function (data, status) {
+        //         debug("Data: " + data + "\nStatus: " + status);
+        //     });
+
+            jQ.ajaxSetup({
+                headers: {
+                    'Authorization': `enctoken ${getCookie('enctoken')}`
+                }
+            });
+            jQ.ajax({
+                url: BASE_URL + `/oms/orders/regular/${order.orderId}`,
+                type: 'PUT',
+                data: order,
+                async: false,
+                cache: false,
+                error: function (xhr, status, error) {
+                    debug(error);
+                    debug(xhr.responseText);
+                    getToast(`${status} :: ${error} :: ${xhr.responseText}`).showToast();
+
+                    throw new Error("Not able to modify order. " + error);
+                },
+                success: function (response, status) {
+                    debug("22222");
+                    debug("Data: " + JSON.stringify(response) + "\nStatus: " + status);
+                    getToast(`Order modification Successful.`).showToast();
+                },
+                complete: function () {
+                    debug("33333");
+                }
+            });
+        };
 }
 
 function showRoiNudge() {
@@ -4482,6 +4653,9 @@ function orderInfo() {
     jQ(BASE_ORDERINFO_DOM + " > div > div > button")[0].before(i);
 }
 
+jQ(document).on('change', "input.su-checkbox", function () {
+    showBumpButton();
+});
 //copy orders (not used)
 jQ(document).on('click', 'section.completed-orders-wrap.table-wrapper > div > div > table > tbody > tr', function () {
 
@@ -4688,121 +4862,121 @@ waitForKeyElements(".dropdown-nav.layer-2", addPnlMenu);
 //watching for 'do more with strategy builder' link
 //changed to span:Try it Now
 // waitForKeyElements("a:contains('Do more with Strategy Builder')", sensibull);
-waitForKeyElements("span:contains('Try it Now')", sensibull);
+// waitForKeyElements("span:contains('Try it Now')", sensibull);
 
 var previousArray = [];
-function sensibull(firstTry = true) {
-    debug('sensibull');
-    tEv("kite", "positions", "sensibull", "");
+// function sensibull(firstTry = true) {
+//     debug('sensibull');
+//     tEv("kite", "positions", "sensibull", "");
 
-    var rows = jQ(allDOMPaths.sensibullRows);
-    //debug(d);
-    debug(rows.length);
-    if (firstTry && rows.length < 1) {
-        setTimeout(function () { sensibull(false); }, 1000);
-        return;
-    }
+//     var rows = jQ(allDOMPaths.sensibullRows);
+//     //debug(d);
+//     debug(rows.length);
+//     if (firstTry && rows.length < 1) {
+//         setTimeout(function () { sensibull(false); }, 1000);
+//         return;
+//     }
 
-    var selectBox = document.createElement("SELECT");
-    selectBox.id = "toggleSelectboxID";
-    selectBox.classList.add("randomClassToHelpHide");
-    //selectBox.style="margin: 15px 0;margin-top: 15px;margin-right: 0px;margin-bottom: 15px;margin-left: 0px;background-color: var(--color-bg-default)"
+//     var selectBox = document.createElement("SELECT");
+//     selectBox.id = "toggleSelectboxID";
+//     selectBox.classList.add("randomClassToHelpHide");
+//     //selectBox.style="margin: 15px 0;margin-top: 15px;margin-right: 0px;margin-bottom: 15px;margin-left: 0px;background-color: var(--color-bg-default)"
 
-    var option = document.createElement("option");
-    option.text = "Toggle";
-    option.value = "All";
-    selectBox.add(option);
+//     var option = document.createElement("option");
+//     option.text = "Toggle";
+//     option.value = "All";
+//     selectBox.add(option);
 
-    var expiryArray = [];
-    rows.each(function (rowIndex) {
-        var exp = jQ(this).find('th > div > div:nth-child(3)').text().split(" ")[2];
+//     var expiryArray = [];
+//     rows.each(function (rowIndex) {
+//         var exp = jQ(this).find('th > div > div:nth-child(3)').text().split(" ")[2];
 
-        if (!expiryArray.includes(exp)) {
-            expiryArray.push(exp);
+//         if (!expiryArray.includes(exp)) {
+//             expiryArray.push(exp);
 
-            var option = document.createElement("option");
-            option.text = exp;
-            option.value = exp;
-            selectBox.add(option);
-        }
-    });
+//             var option = document.createElement("option");
+//             option.text = exp;
+//             option.value = exp;
+//             selectBox.add(option);
+//         }
+//     });
 
-    if (arrayEquals(previousArray, expiryArray)) {
-        debug('ignore array set');
-        return;
-    } else {
-        previousArray = expiryArray;
-    }
-    jQ('#toggleSelectboxID').remove();
-    //document.querySelector("")
-    jQ("span:contains('F&O Instruments')").after(selectBox);
+//     if (arrayEquals(previousArray, expiryArray)) {
+//         debug('ignore array set');
+//         return;
+//     } else {
+//         previousArray = expiryArray;
+//     }
+//     jQ('#toggleSelectboxID').remove();
+//     //document.querySelector("")
+//     jQ("span:contains('F&O Instruments')").after(selectBox);
 
-    selectBox.addEventListener("change", function () {
-        tEv("kite", "positions", "sensibull", "expiry-filter");
-        var selectedItem = this.value;
-        debug(selectedItem);
+//     selectBox.addEventListener("change", function () {
+//         tEv("kite", "positions", "sensibull", "expiry-filter");
+//         var selectedItem = this.value;
+//         debug(selectedItem);
 
-        var rows = jQ(allDOMPaths.sensibullRows);
-        rows.each(function (rowIndex) {
-            var t = jQ(this).find('th > div > div:nth-child(3)').text().split(" ")[2];
+//         var rows = jQ(allDOMPaths.sensibullRows);
+//         rows.each(function (rowIndex) {
+//             var t = jQ(this).find('th > div > div:nth-child(3)').text().split(" ")[2];
 
-            debug('toggle for ' + t);
-            if (selectedItem == 'All' || t.toUpperCase() == selectedItem.toUpperCase()) {
-                debug('toggle : success');
-                var c = jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].click();
-            }
-        });
-    });
+//             debug('toggle for ' + t);
+//             if (selectedItem == 'All' || t.toUpperCase() == selectedItem.toUpperCase()) {
+//                 debug('toggle : success');
+//                 var c = jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].click();
+//             }
+//         });
+//     });
 
-    var strategySelectBox = document.createElement("SELECT");
-    strategySelectBox.id = "userStrategiesId";
-    strategySelectBox.classList.add("randomClassToHelpHide");
-    strategySelectBox.style = "margin: 15px 0;margin-top: 15px;margin-right: 0px;margin-bottom: 15px;margin-left: 0px;font-size: 12px;background-color: var(--color-bg-default)"
+//     var strategySelectBox = document.createElement("SELECT");
+//     strategySelectBox.id = "userStrategiesId";
+//     strategySelectBox.classList.add("randomClassToHelpHide");
+//     strategySelectBox.style = "margin: 15px 0;margin-top: 15px;margin-right: 0px;margin-bottom: 15px;margin-left: 0px;font-size: 12px;background-color: var(--color-bg-default)"
 
-    //add options to the positions select drop down
-    for (var key in positions) {
-        option = document.createElement("option");
-        option.text = key;
-        option.value = key;
-        strategySelectBox.add(option);
-    };
+//     //add options to the positions select drop down
+//     for (var key in positions) {
+//         option = document.createElement("option");
+//         option.text = key;
+//         option.value = key;
+//         strategySelectBox.add(option);
+//     };
 
-    jQ('#userStrategiesId').remove();
-    jQ(".style__StyledBrandLogo-t0trse-8").before(strategySelectBox);
+//     jQ('#userStrategiesId').remove();
+//     jQ(".style__StyledBrandLogo-t0trse-8").before(strategySelectBox);
 
 
-    strategySelectBox.addEventListener("change", function () {
-        tEv("kite", "positions", "sensibull", "strategy-filter");
-        var selectedItem = this.value;
-        info(selectedItem);
+//     strategySelectBox.addEventListener("change", function () {
+//         tEv("kite", "positions", "sensibull", "strategy-filter");
+//         var selectedItem = this.value;
+//         info(selectedItem);
 
-        var script = jQ(jQ(allDOMPaths.sensibullScriptSelected)[0]).text().split(' ')[0];
+//         var script = jQ(jQ(allDOMPaths.sensibullScriptSelected)[0]).text().split(' ')[0];
 
-        var selectedPositions = positions[selectedItem].map(value => value.toUpperCase());
-        debug(selectedPositions);
+//         var selectedPositions = positions[selectedItem].map(value => value.toUpperCase());
+//         debug(selectedPositions);
 
-        var rows = jQ(allDOMPaths.sensibullRows);
-        //rest all.
-        rows.each(function (rowIndex) {
-            debug(jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].checked);
-            if (jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].checked == false) {
-                var c = jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].click();
-            }
-        });
-        rows.each(function (rowIndex) {
-            var t = `${script} ${jQ(this).find('th > div > div:nth-child(3)').text().split(" ").slice(2).join(" ")}`;
+//         var rows = jQ(allDOMPaths.sensibullRows);
+//         //rest all.
+//         rows.each(function (rowIndex) {
+//             debug(jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].checked);
+//             if (jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].checked == false) {
+//                 var c = jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].click();
+//             }
+//         });
+//         rows.each(function (rowIndex) {
+//             var t = `${script} ${jQ(this).find('th > div > div:nth-child(3)').text().split(" ").slice(2).join(" ")}`;
 
-            debug('comparing sesibull position ' + t);
-            if (!selectedPositions.includes(t.toUpperCase())) {
-                var c = jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].click();
-            }
-            // if (t.toUpperCase() == selectedItem.toUpperCase()) {
-            //     debug('toggle : success');
-            //     var c = jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].click();
-            // }
-        });
-    });
-}
+//             debug('comparing sesibull position ' + t);
+//             if (!selectedPositions.includes(t.toUpperCase())) {
+//                 var c = jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].click();
+//             }
+//             // if (t.toUpperCase() == selectedItem.toUpperCase()) {
+//             //     debug('toggle : success');
+//             //     var c = jQ(this).find(allDOMPaths.sensibullRowCheckbox)[0].click();
+//             // }
+//         });
+//     });
+// }
 
 function arrayEquals(a, b) {
     return Array.isArray(a) &&
@@ -4812,26 +4986,26 @@ function arrayEquals(a, b) {
 }
 
 //div.InstrumentPickerSymbolWrapper
-waitForKeyElements('div[role=combobox]', listenToSymbolChange);
-function listenToSymbolChange() {
-    debug('listenToSymbolChange');
-    jQ(document).off('click', "div[role=combobox]", handleSymbolClick);
-    jQ(document).on('click', "div[role=combobox]", handleSymbolClick);
-}
+// waitForKeyElements('div[role=combobox]', listenToSymbolChange);
+// function listenToSymbolChange() {
+//     debug('listenToSymbolChange');
+//     jQ(document).off('click', "div[role=combobox]", handleSymbolClick);
+//     jQ(document).on('click', "div[role=combobox]", handleSymbolClick);
+// }
 
-function handleSymbolClick(event) {
-    debug('listenToSymbolChange click');
-    //stopImmediatePropagation
-    event.stopPropagation();
-    tEv("kite", "positions", "sensibull", "symbol-change");
+// function handleSymbolClick(event) {
+//     debug('listenToSymbolChange click');
+//     //stopImmediatePropagation
+//     event.stopPropagation();
+//     tEv("kite", "positions", "sensibull", "symbol-change");
 
-    setTimeout(() => sensibull1(), 3000);
-}
+//     setTimeout(() => sensibull1(), 3000);
+// }
 
-function sensibull1() {
-    debug('sensbulll1');
-    sensibull(false);
-}
+// function sensibull1() {
+//     debug('sensbulll1');
+//     sensibull(false);
+// }
 
 //debug(getLastThursday('Jan'));
 
@@ -5034,7 +5208,8 @@ function addOverrideOption() {
 }
 
 function openReplacement(method, url, async, user, password) {
-    debug("openReplacement");
+    debug("openReplacement " + url);
+    
     if (method === 'POST' && url.includes('/orders/regular')) {
         _newOrder = true;
     } else {
@@ -5042,6 +5217,42 @@ function openReplacement(method, url, async, user, password) {
     }
     return open.apply(this, arguments);
 }
+
+window.addEventListener('load', function() {
+    debug('onload');
+    debug(window.location.href)
+    if (window.location.href.includes('request_token')) {
+        var q = qs.parse(window.location.href);
+        debug(q.status);
+        if (q.status == 'success') {
+            jQ.post('https://api.kite.trade/session/token',
+                {'api_key':gmc.get('api_key') , 'request_token':q.request_token, 'checksum':sha256(gmc.get('api_key') + q.request_token + gmc.get('api_secret'))},
+                function (data, status) {
+                    debug("AAAAAA");
+                    
+                    debug("Data: " + data + "\nStatus: " + status);
+                    window.location.href="https://kite.zerodha.com";
+                    getToast(`AT status ${status}`).showToast();
+                    gmc.set('api_access_token',data.data.access_token);
+                    gmc.save(false);
+                    // setTimeout(() => {
+                    //     window.open("https://kite.zerodha.com", "_self");
+                    // }, 1000);
+                    
+                })
+                .fail(function (xhr, status, error) {
+                    debug("BBBB");
+                    var resp = JSON.parse(xhr.responseText);
+
+                    getToast(`AT Status ${status} :: ${resp.message}`).showToast();
+
+                });
+        } else {
+            getToast('Unable to get Request Token').showToast();
+        }
+        
+    }
+}, false);
 
 function sendReplacement(data) {
     debug("sendReplacement");
@@ -5351,3 +5562,8 @@ tEv("kite", "visit", "main", VERSION);
 // 👉Disclaimer/disclosure/terms and conditions applicable to all users of this script
 
 // All the features are for education and learning purpose only👍
+
+
+let isInit = () => setTimeout(() => 
+    gmc.isInit ? main() : isInit(), 0);
+isInit();
