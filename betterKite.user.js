@@ -458,7 +458,7 @@ function initGM() {
                 // log the saved value of the Name field
                 // this.log(this.get('Name'));
                 this.close();
-                if (a) 
+                if (a)
                     reloadPage();
             }
         }
@@ -1880,9 +1880,9 @@ function showPositionDropdown(retry = true) {
     var spanForCount = document.createElement("span");
     spanForCount.classList.add("randomClassToHelpHide");
     spanForCount.classList.add("tagSelectorStyle");
-    spanForCount.style = "font-size: 0.9rem;border-right: 1px solid gray;padding: 0 10px;"
+    spanForCount.style = "font-size: 0.9rem;border-right: 1px solid gray;padding: 0 10px;cursor:pointer"
     spanForCount.id = 'stocksInTagCount';
-    var inter=null;
+    var inter=null,timeout=0;
     spanForCount.addEventListener("click", async() => {
         let config = {
             headers: {
@@ -1891,12 +1891,9 @@ function showPositionDropdown(retry = true) {
             }
         };
         if(inter!=null)
-            clearInterval(inter),inter=null;
+            clearInterval(inter),inter=null,jQ("#fundsStyle").text(""),timeout=0;
         else
-            inter = setInterval(()=>{
-                let response = axios.get("https://kite.zerodha.com/oms/user/margins", config);
-                response.then((res)=>jQ("#fundsStyle").text(formatter.format(res.data.data.equity.net)+" ( "+formatter.format(res.data.data.equity.available.live_balance)+" )"))
-        },10000)
+            inter = setInterval(getFundsInfo(config,inter),timeout)
     });
 
     var divForMargin = document.createElement("span");
@@ -1990,8 +1987,16 @@ function showPositionDropdown(retry = true) {
 
         // Pass in the target node, as well as the observer options
         g_straddleSpotObserver.observe(target, config);
-}
-function getFunds(){
+
+    function getFundsInfo(config) {
+        return () => {
+            clearInterval(inter)
+            timeout = 10000;
+            let response = axios.get("https://kite.zerodha.com/oms/user/margins", config);
+            response.then((res) => jQ("#fundsStyle").text(formatter.format(res.data.data.equity.utilised.debits / 100000) + "L : " + formatter.format(res.data.data.equity.net / 100000) + "L ( " + formatter.format(res.data.data.equity.available.live_balance / 100000) + "L )"));
+            inter = setInterval(getFundsInfo(config),timeout)
+        };
+    }
 }
 function calculateOCGreeks(){
     jQ(".greekOCWrapper").remove();
@@ -2190,7 +2195,7 @@ function impliedVolatilityBlack76Call(S_f, K, T, C_market, initialGuess = 0.2, t
 
         sigma -= diff / vega(S_f, K, T, sigma);
     }
-    return sigma; // Return the last computed sigma if no convergence
+    return isNaN(sigma)?0:sigma; // Return the last computed sigma if no convergence
 }
 
 function impliedVolatilityBlack76Put(S_f, K, T, P_market, initialGuess = 0.2, tol = 1e-5, maxIter = 100) {
@@ -2206,7 +2211,7 @@ function impliedVolatilityBlack76Put(S_f, K, T, P_market, initialGuess = 0.2, to
 
         sigma -= diff / vega(S_f, K, T, sigma);
     }
-    return sigma; // Return the last computed sigma if no convergence
+    return isNaN(sigma)?0:sigma; // Return the last computed sigma if no convergence
 }
 
 // Delta calculations
@@ -2970,7 +2975,7 @@ function getHoldingRowObject(row) {
 
 function getOrderRowObject(row) {
     var order = {};
-    
+
     var dataUidInTR = jQ(jQ(row).find("td")[0]).find('input').attr('id');
     order.orderId = dataUidInTR.split("NFO")[1]?dataUidInTR.split("NFO")[1]:dataUidInTR.split("BFO")[1];
     order.exchange = dataUidInTR.match(new RegExp("(?:NFO|BSE|NSE)"))[0];
@@ -2983,7 +2988,7 @@ function getOrderRowObject(row) {
     //parseInt(jQ(row).find('td.average-price').text().trim().replace(/\,/g, ''), 10);
     order.ltp = parseFloat(jQ(jQ(row).find("td.last-price")).text().split(",").join(""));
     order.product = jQ(row).find('td.prodduct').text().trim()
-    
+
     debug(order);
 
     return order;
@@ -3281,7 +3286,7 @@ function main() {
     if (gmc.get('full_width')) {
         fullWidth();
     }
-    
+
     GM_registerMenuCommand("Reset Data (WARNING) " + VERSION, function () {
         if (confirm('Are you sure you want to reset all tag data?')) {
             if (confirm('I am checking with you one last time, are you sure?')) {
@@ -5270,7 +5275,7 @@ function addOverrideOption() {
 
 function openReplacement(method, url, async, user, password) {
     debug("openReplacement " + url);
-    
+
     if (method === 'POST' && url.includes('/orders/regular')) {
         _newOrder = true;
     } else {
@@ -5290,7 +5295,7 @@ window.addEventListener('load', function() {
                 {'api_key':gmc.get('api_key') , 'request_token':q.request_token, 'checksum':sha256(gmc.get('api_key') + q.request_token + gmc.get('api_secret'))},
                 function (data, status) {
                     debug("AAAAAA");
-                    
+
                     debug("Data: " + data + "\nStatus: " + status);
                     window.location.href="https://kite.zerodha.com";
                     getToast(`AT status ${status}`).showToast();
@@ -5299,7 +5304,7 @@ window.addEventListener('load', function() {
                     // setTimeout(() => {
                     //     window.open("https://kite.zerodha.com", "_self");
                     // }, 1000);
-                    
+
                 })
                 .fail(function (xhr, status, error) {
                     debug("BBBB");
@@ -5311,7 +5316,7 @@ window.addEventListener('load', function() {
         } else {
             getToast('Unable to get Request Token').showToast();
         }
-        
+
     }
 }, false);
 
@@ -5625,6 +5630,6 @@ tEv("kite", "visit", "main", VERSION);
 // All the features are for education and learning purpose only👍
 
 
-let isInit = () => setTimeout(() => 
+let isInit = () => setTimeout(() =>
     gmc.isInit ? main() : isInit(), 0);
 isInit();
