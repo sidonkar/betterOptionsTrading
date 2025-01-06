@@ -1980,10 +1980,17 @@ function showPositionDropdown(retry = true) {
         });
 
         // Configuration of the observer:
-        config = {
+        config =
+            /*{
             characterData: true,
             subtree: true
-        };
+        };*/
+    {
+  attributes: true,
+  childList: true,
+  subtree: true,
+  characterData: true
+};
 
         // Pass in the target node, as well as the observer options
         g_straddleSpotObserver.observe(target, config);
@@ -1997,6 +2004,8 @@ function showPositionDropdown(retry = true) {
             inter = setInterval(getFundsInfo(config),timeout)
         };
     }
+}
+function getFunds(){
 }
 function calculateOCGreeks(){
     jQ(".greekOCWrapper").remove();
@@ -2035,7 +2044,13 @@ function calculateOCGreeks(){
 }
 
 function calculateStraddle(){
+    jQ(".livePos").removeClass("livePos");
     jQ(".supS").remove();
+
+    var allVisibleRows = jQ(allDOMPaths.PathForPositions + ":visible td.open.instrument span.tradingsymbol");
+    var abc = allVisibleRows.map(function(index,item){
+             return {"name":item.textContent.split(" ")}
+         })
     var items = jQ(".vddl-list.list-flat span.last-price").splice(0);
     var spot = calculateATM(items),calcSynthetic=false,synthetic=spot,displayCalcSynthetic=false;
     var syntheticSpot = (synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent);
@@ -2069,6 +2084,7 @@ function calculateStraddle(){
                     }
                     if(elm[2]== calculateSpot(synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent))
 						element.parentElement.parentElement.parentElement.parentElement.classList.add("atmCss")
+                    showPositionMarkingsOnOC(elm,abc,element)
                 }
                 else if(elm.length==6 || elm.length==7)
                 {
@@ -2091,6 +2107,7 @@ function calculateStraddle(){
                     }
                      if(elm[4]==calculateSpot(synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent))
 						element.parentElement.parentElement.parentElement.parentElement.classList.add("atmCss");
+                    showPositionMarkingsOnOC(elm,abc,element)
                 }
             }
             if(calcFlag)
@@ -2251,6 +2268,22 @@ function calculateATM(items){
     jQ(".atmCss").removeClass("atmCss");
     var indexName = items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent;
     return calculateSpot(items[1].textContent,indexName);
+}
+
+function showPositionMarkingsOnOC(item,positions,element){
+    const arraysMatch = (arr1, arr2) => {
+        if (arr1.length !== arr2.length) return false;
+        return arr1.every((value, index) => value === arr2[index]);
+    };
+    var matchFound = false;
+    for (let key=0;key<positions.length;key++) {
+        if (positions[key] && arraysMatch(item, positions[key].name)) {
+             element.parentElement.parentElement.parentElement.parentElement.classList.add("livePos")
+             delete positions[key];
+             matchFound = true;
+             break;
+        }
+    }
 }
 
 function calculateSpot(item,indexName){
@@ -3206,6 +3239,9 @@ function fullWidth() {
         right: 10px;
         letter-spacing: 1px;
 	}
+    .info-wrapper.livePos {
+        box-shadow: inset 0px 0px 20px 0px darkslategray;
+    }
     .atmCss {
         box-shadow: inset 0px 0px 5px 0px gray !important;
     }
@@ -3278,7 +3314,6 @@ span.greekOCWrapper {
     padding-left: 10px;
 }
 span#marginDiv{display:none}
-
     </style>`;
     jQ("head").append(cssStr);
 }
