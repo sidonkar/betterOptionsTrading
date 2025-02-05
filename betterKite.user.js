@@ -2809,7 +2809,7 @@ function assignGreeks(scriptName,strike,option,dateVar,monthVar,price,isOC){
     let oc = jQ(".vddl-list.list-flat span.nice-name").splice(0);
     if(isNaN(dateVar))
     {
-        const expiryDayMapping = {"NIFTY":"Thursday","BANKNIFTY":"Wednesday","SENSEX":"Friday","BANKEX":"Monday","FINIFTY":"Tuesday","MIDCPNIFTY":"Monday"}
+        const expiryDayMapping = {"NIFTY":"Thursday","BANKNIFTY":"Thursday","SENSEX":"Tuesday","BANKEX":"Tuesday","FINIFTY":"Thursday","MIDCPNIFTY":"Thursday"}
         let tempDate = new Date();
         dateVar = new Date(""+tempDate.getDate()+" "+monthVar+" "+tempDate.getUTCFullYear());
         let lastDaysOfWeek = getLastDaysOfWeekInMonth(tempDate.getUTCFullYear(), dateVar.getMonth());
@@ -3244,6 +3244,9 @@ function fullWidth() {
     }
     .atmCss {
         box-shadow: inset 0px 0px 5px 0px gray !important;
+    }
+    .info-wrapper.livePos.atmCss {
+        box-shadow: inset 0px 0px 20px 0px darkslategray,inset 0px 0px 5px 0px gray !important;
     }
     .app .wrapper {
         max-width: 100%;
