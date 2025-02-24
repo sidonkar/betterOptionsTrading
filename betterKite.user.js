@@ -1780,6 +1780,8 @@ function hideDropdown() {
     if (g_observer) g_observer.disconnect();
     if (g_positionsPnlObserver) g_positionsPnlObserver.disconnect();
     if (g_straddleSpotObserver) g_straddleSpotObserver.disconnect();
+    jQ("#atmBtn").off('click');
+    jQ(".atmBtnParent").remove();
 }
 
 //waitForKeyElements("span.count",showPositionDropdown);
@@ -2342,6 +2344,67 @@ function showHoldingDropdown() {
     simulateSelectBoxEvent();
 }
 
+const mouseoverEvent = new Event('mouseenter');
+
+function addSensibulLayover()
+{
+        var sizeVar=5;
+            if(jQ(".atmBtn").length==0)
+            {
+                jQ("div#app div.header-row").append("<span style='float:right;font-size: 0.8rem;' class='atmBtnParent'><button class='atmBtn' id='clearOptionChain'>Clear & Refresh</button> OTM<input type='number' id='otmCounter' name='otmCounter' min='1' max='20' class='atmBtn' value='"+sizeVar*2+"' /> ATM<input type='number' id='counter' name='counter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><button class='atmBtn' id='atmBtn'>ATM +-</button></span>")
+
+            jQ(document).on('click', "#atmBtn", function (e) {
+                 var a = jQ("div.data-table.sticky>div.table-wrapper>table>tbody>tr");
+                otmSizeVar = jQ("#otmCounter")[0].value
+                sizeVar = jQ("#counter")[0].value
+                let atmIndex=jQ("div.data-table.sticky>div.table-wrapper>table>tbody>tr").toArray().findIndex((i,j)=>{return i.classList.contains("closest-strike-row")==true});
+                let addArray=[];
+
+                for(let i=0,index=atmIndex-(1*sizeVar+1*otmSizeVar);i<=2*(1*sizeVar+1*otmSizeVar);i++)
+                {
+                    if(index>=atmIndex-1*sizeVar && index<=atmIndex+1*sizeVar)
+                    {
+                        console.log(index," ATM ",atmIndex,a[index]);
+                        if (gmc.get('pe_ce_order'))
+                        {
+                            addArray.push({"index":index,"right":false})
+                            addArray.push({"index":index,"right":true})
+                        }
+                        else
+                        {
+                            addArray.push({"index":index,"right":true})
+                            addArray.push({"index":index,"right":false})
+                        }
+                    }
+                    else
+                    {
+                        console.log(index," OTM ",atmIndex,a[index]);
+                        if(index<atmIndex)
+                            addArray.push({"index":index,"right":false})
+                        else
+                            addArray.push({"index":index,"right":true})
+                    }
+                    index+=1;
+                }
+                addRow(a,addArray,0)
+            })
+                }
+
+        function addRow(a,addArray,i){
+            if(i<addArray.length)
+            {
+                let left_selector=".strike.center .menu-left";
+                let right_selector=".strike.center .menu-right";
+                jQ(a[addArray[i]["index"]])[0].dispatchEvent(mouseoverEvent);
+                setTimeout(function (currentIndex){
+                    let selector = addArray[i]["right"]?left_selector:right_selector;
+                    jQ(selector).find("span>button")[2].click()
+                    addRow(a,addArray,++i)
+                },400)
+            }
+        }
+    }
+
 function toggleDropdown(currentUrl) {
     debug('toggleDropdown');
 
@@ -2387,8 +2450,9 @@ function toggleDropdown(currentUrl) {
         //     debug('showing send order form');
         // showSendOrderButton();
         // }
-    }else if (currentUrl.includes('dashboard')) {
+    }else if (currentUrl.includes('markets/option-chain')) {
         //addWatchlistFilter()
+        setTimeout(()=>addSensibulLayover(),0)
     }
 }
 
@@ -3287,9 +3351,6 @@ function fullWidth() {
          color: var(--primaryColor);
          cursor:pointer;
     }
-    input#counter {
-         width: 60px;
-    }
     a#clearOptionChain {
          padding : 10px;
     }
@@ -3805,8 +3866,6 @@ function main() {
         }
     });
 
-const mouseoverEvent = new Event('mouseenter');
-
     //click on clear Option Chain
     jQ(document).on('click', "#clearOptionChain", function () {
         tEv("kite", "clearOptionChain", "click", "");
@@ -4294,57 +4353,8 @@ const mouseoverEvent = new Event('mouseenter');
             document.title = txt?txt:document.title;
         },1000);
     }
-    if(window.location.pathname.includes("widget/option-chain"))
-    {
-        var sizeVar=5;
-        setInterval(()=>{
-            if(jQ(".atmBtn").length==0)
-            {
-                jQ("div#app>div>div:first-child").append("<div style='color:lightsalmon;font-size: 0.8rem;'><button class='atmBtn' id='refreshMe'>Refresh</button> OTM<input type='number' id='otmCounter' name='otmCounter' min='1' max='20' class='atmBtn' value='"+sizeVar*2+"' /> ATM<input type='number' id='counter' name='counter' min='1' max='20' class='atmBtn' value='"+sizeVar+"' /><button class='atmBtn' id='atmBtn'>ATM +-</button></div>")
-
-            jQ(document).on('click', "#atmBtn", function (e) {
-                 var a = jQ(".MuiTableRow-root button.MuiButtonBase-root.MuiButton-root.MuiButton-text:last-child");
-                otmSizeVar = jQ("#otmCounter")[0].value
-                sizeVar = jQ("#counter")[0].value
-                let atmIndex=2*jQ(".MuiTableRow-root").toArray().findIndex((i,j)=>{return jQ(i).find(".atm-strike").length>0});
-
-                for(let i=0,index=atmIndex-2-2*(1*sizeVar+1*otmSizeVar);i<2*(1*sizeVar+1*otmSizeVar)+1;i++)
-                {
-                    if(index>=atmIndex-2-2*sizeVar && index<=atmIndex-2+2*sizeVar)
-                    {
-                        if (gmc.get('pe_ce_order'))
-                        {
-                            jQ(a[index+1]).click();
-                            jQ(a[index]).click();
-                        }
-                        else
-                        {
-                            jQ(a[index]).click();
-                            jQ(a[index+1]).click();
-                        }
-                    }
-                    else
-                    {
-                        if(a[index].parentElement.parentElement.parentElement.classList.contains("itm-strike"))
-                        {
-                            jQ(a[index+1]).click();
-                        }
-                        else
-                        {
-                            jQ(a[index]).click();
-                        }
-                    }
-                    index+=2;
-                }
-            })
-            jQ(document).on('click', "#refreshMe", function (e) {
-                sizeVar = jQ("#counter")[0].value
-                jQ(".atmBtn").off('click');
-                jQ(".atmBtn").remove();
-            })
-                }
-        },1000);
-    }
+    //if(window.location.pathname.includes("markets/option-chain"))
+    
 
 }
 
