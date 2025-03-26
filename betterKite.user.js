@@ -2397,8 +2397,10 @@ function addSensibulLayover()
                 let right_selector=".strike.center .menu-right";
                 jQ(a[addArray[i]["index"]])[0].dispatchEvent(mouseoverEvent);
                 setTimeout(function (currentIndex){
-                    let selector = addArray[i]["right"]?left_selector:right_selector;
-                    jQ(selector).find("span>button")[2].click()
+                    if(addArray[i]["right"])
+                        jQ(left_selector).find("span>button")[0].click()
+                    else
+                        jQ(right_selector).find("span>button")[2].click();
                     addRow(a,addArray,++i)
                 },400)
             }
