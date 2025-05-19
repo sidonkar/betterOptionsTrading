@@ -119,7 +119,7 @@ const allDOMPaths = {
     domPathPendingOrdersTR: "div.pending-orders > div > div.table-wrapper > table > tbody > tr",
     domPathExecutedOrdersTR: "div.completed-orders > div > table > tbody > tr",
     domPathTradingSymbolInsideOrdersTR: "span.tradingsymbol > span",
-    domPathStockNameInWatchlistRow: "span.nice-name",
+    domPathStockNameInWatchlistRow: "span.name",
     domPathMainInitiatorLabel: "h3.page-title.small > span",
     // domPathTabToChangeWatchlist: "ul.marketwatch-selector.list-flat > li",
     // domPathTabToChangeWatchlist: "div.marketwatch-selector.list-flat > a.item.selected
@@ -2012,7 +2012,7 @@ function getFunds(){
 function calculateOCGreeks(){
     jQ(".greekOCWrapper").remove();
     //jQ(this).find(".greekOCWrapper").remove();
-    var items = jQ(".vddl-list.list-flat span.last-price").splice(0);
+    var items = jQ(".items-wrapper .items:first span.last-price").splice(0);
     items.forEach(function(element,i) {
             var elm=element.parentElement.parentElement.previousElementSibling.textContent.trim().split(" ");
             if(elm.length>=4)
@@ -2053,15 +2053,15 @@ function calculateStraddle(){
     var abc = allVisibleRows.map(function(index,item){
              return {"name":item.textContent.split(" ")}
          })
-    var items = jQ(".vddl-list.list-flat span.last-price").splice(0);
+    var items = jQ(".items-wrapper .items:first span.last-price").splice(0);
     var spot = calculateATM(items),calcSynthetic=false,synthetic=spot,displayCalcSynthetic=false;
     var syntheticSpot = (synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent);
     items.forEach(function(element,i) {
         var calcFlag=false;
         if(i+1<items.length)
         {
-            var elm=element.parentElement.parentElement.previousElementSibling.textContent.trim().split(" ");
-            var nextElm=items[i+1].parentElement.parentElement.previousElementSibling.textContent.trim().split(" ");
+            var elm=element.parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent.trim().split(" ");
+            var nextElm=items[i+1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent.trim().split(" ");
             if(elm.length>=4 && nextElm.length>=4 && elm.length==nextElm.length)
             {
                 if(elm.length==4 || elm.length==5)
@@ -2386,6 +2386,7 @@ function addSensibulLayover()
                     }
                     index+=1;
                 }
+
                 addRow(a,addArray,0)
             })
                 }
@@ -2872,7 +2873,37 @@ function getLastDaysOfWeekInMonth(year, month) {
 }
 
 function assignGreeks(scriptName,strike,option,dateVar,monthVar,price,isOC){
-    let oc = jQ(".vddl-list.list-flat span.nice-name").splice(0);
+    if(!isOC)
+    {
+        let self=this
+        let items = jQ(".items-wrapper .items:first div.livePos").splice(0);
+          items.forEach(function(element,i) {
+            var elm=jQ(element).find("span.name")[0].textContent.trim().split(" ");
+            var greekVal=jQ(element).find("span.greekOCWrapper")[0].textContent.trim().split(" ");
+            if(elm.length>=4)
+            {
+                if(scriptName==elm[0] && monthVar==elm[1] && strike==elm[2] && option==elm[3])
+                {
+                    jQ(self).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
+                                                           greekVal[0] + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
+                                                           greekVal[1])+"</span></span>"
+                    return;
+                }
+            }
+            if(elm.length>=6)
+            {
+                if(scriptName==elm[0] && elm[1].startsWith(""+dateVar) && monthVar==elm[3] && strike==elm[4] && option==elm[5])
+                {
+                    jQ(self).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
+                                                           greekVal[0] + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
+                                                           greekVal[1])+"</span></span>"
+                    return;
+                }
+            }
+        })
+        return;
+    }
+    let oc = jQ(".items-wrapper .items:first span.name").splice(0);
     if(isNaN(dateVar))
     {
         const expiryDayMapping = {"NIFTY":"Thursday","BANKNIFTY":"Thursday","SENSEX":"Tuesday","BANKEX":"Tuesday","FINIFTY":"Thursday","MIDCPNIFTY":"Thursday"}
@@ -2883,10 +2914,10 @@ function assignGreeks(scriptName,strike,option,dateVar,monthVar,price,isOC){
     }
     if(oc[1].textContent==indexMapping[scriptName])
     {
-        if(!jQ(".vddl-list.list-flat .synthetic") || jQ(".vddl-list.list-flat .synthetic").length==0 )
+        if(!jQ(".items-wrapper .items:first .synthetic") || jQ(".items-wrapper .items:first .synthetic").length==0 )
             return;
 
-        let S_f = jQ(".vddl-list.list-flat .synthetic").splice(0)[0].textContent.split(" ")[0];   // Synthetic Futures price
+        let S_f = jQ(".items-wrapper .items:first .synthetic").splice(0)[0].textContent.split(" ")[0];   // Synthetic Futures price
         let K = strike;     // Strike price
         let dte = calculateDaysDifference(new Date(`${dateVar} ${monthVar} ${new Date().getUTCFullYear()}`),new Date());
         let T = dte/365;       // Time to expiration (1 year)
@@ -2896,22 +2927,16 @@ function assignGreeks(scriptName,strike,option,dateVar,monthVar,price,isOC){
         {
             let impliedVolPut = impliedVolatilityBlack76Put(S_f, K, T, C_market);
             let putDeltaVal = putDelta(S_f, K, T, impliedVolPut);
-            !isOC?jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
-                                                                 putDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
-                                                                 (impliedVolPut*100).toFixed(1))+"</span></span>":
-            jQ(this).find(".info").append("<span class='greekOCWrapper'><span class='text-label blue randomClassToHelpHide'>" +
-                                                                 putDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >"+
+            jQ(this).find(".item-info").append("<span class='greekOCWrapper'><span class='text-label blue randomClassToHelpHide'>" +
+                                                                 putDeltaVal.toFixed(2) + " </span><span class='text-label orange randomClassToHelpHide' >"+
                                                                  (impliedVolPut*100).toFixed(1))+"</span></span>";
         }
         else if (option=="CE")
         {
             let impliedVolCall = impliedVolatilityBlack76Call(S_f, K, T, C_market);
             let callDeltaVal = callDelta(S_f, K, T, impliedVolCall);
-            !isOC?jQ(this).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
-                                                                 callDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
-                                                                 (impliedVolCall*100).toFixed(1))+"</span></span>":
-            jQ(this).find(".info").append("<span class='greekOCWrapper'><span class='text-label blue randomClassToHelpHide'>" +
-                                                                 callDeltaVal.toFixed(2) + "</span><span class='text-label orange randomClassToHelpHide' >"+
+            jQ(this).find(".item-info").append("<span class='greekOCWrapper'><span class='text-label blue randomClassToHelpHide'>" +
+                                                                 callDeltaVal.toFixed(2) + " </span><span class='text-label orange randomClassToHelpHide' >"+
                                                                  (impliedVolCall*100).toFixed(1))+"</span></span>";
         }
     }
@@ -3336,7 +3361,7 @@ function fullWidth() {
     .instruments {
         overflow: hidden;
     }
-    .vddl-list.list-flat {
+    .items-wrapper .items{
         overflow: auto;
     }
     .text-red .text-label.grey.randomClassholdingToHelpHide{color: red}
@@ -3777,12 +3802,12 @@ function main() {
                 //     jQ(this).removeAttr('data-balloon-pos');
                 //     jQ(this).removeAttr('data-balloon');
                 // } else {
-                    var iv = jQ("div.info > div.symbol-wrapper > div.symbol > span.nice-name:contains('INDIA')");
+                    var iv = jQ("div.item-info > div.symbol-wrapper > div.symbol > span.name:contains('INDIA')");
                     debug(iv.length);
                     if (iv.length > 0) {
                         var strike = jQ(this).text().trim();
                         //jQ("div.vddl-draggable:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > span:nth-child(3)")
-                        var vix = jQ(iv).closest("div.info").find("div.price > span.last-price").text().trim();
+                        var vix = jQ(iv).closest("div.item-info").find("div.price > span.last-price").text().trim();
                         var chg = vix / Math.sqrt(12); //gmc.get('nifty_vix_range_monthly_sqroot');
                         var range = strike * chg / 100;
                         var lNift = strike - range;
@@ -4167,7 +4192,7 @@ function main() {
                     {
                         nextStrike = elm[4]+strikeDiffIndexArr[elm[0]];
                     }
-                    var oc = jQ(".vddl-list.list-flat span.nice-name").splice(0);
+                    var oc = jQ(".items-wrapper .items:first span.name").splice(0);
                     currOption = oc.filter(function (item){
                         if(item.textContent.trim().split(" ")[4] == elm[4] && item.textContent.trim().split(" ")[5] == elm[5])
                             return item;
