@@ -2012,7 +2012,7 @@ function getFunds(){
 function calculateOCGreeks(){
     jQ(".greekOCWrapper").remove();
     //jQ(this).find(".greekOCWrapper").remove();
-    var items = jQ(".items-wrapper .items:first span.last-price").splice(0);
+    var items = jQ(".items-wrapper .items span.last-price").splice(0);
     items.forEach(function(element,i) {
             var elm=element.parentElement.parentElement.previousElementSibling.textContent.trim().split(" ");
             if(elm.length>=4)
@@ -2053,14 +2053,14 @@ function calculateStraddle(){
     var abc = allVisibleRows.map(function(index,item){
              return {"name":item.textContent.split(" ")}
          })
-    var items = jQ(".items-wrapper .items:first span.last-price").splice(0);
+    var items = jQ(".items-wrapper .items span.last-price").splice(0);
     var spot = calculateATM(items),calcSynthetic=false,synthetic=spot,displayCalcSynthetic=false;
     var syntheticSpot = (synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent);
     items.forEach(function(element,i) {
         var calcFlag=false;
+        var elm=element.parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent.trim().split(" ");
         if(i+1<items.length)
         {
-            var elm=element.parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent.trim().split(" ");
             var nextElm=items[i+1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent.trim().split(" ");
             if(elm.length>=4 && nextElm.length>=4 && elm.length==nextElm.length)
             {
@@ -2086,7 +2086,7 @@ function calculateStraddle(){
                     }
                     if(elm[2]== calculateSpot(synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent))
 						element.parentElement.parentElement.parentElement.parentElement.classList.add("atmCss")
-                    showPositionMarkingsOnOC(elm,abc,element)
+                    //showPositionMarkingsOnOC(elm,abc,element)
                 }
                 else if(elm.length==6 || elm.length==7)
                 {
@@ -2109,22 +2109,22 @@ function calculateStraddle(){
                     }
                      if(elm[4]==calculateSpot(synthetic,items[1].parentElement.parentElement.previousElementSibling.firstChild.firstChild.textContent))
 						element.parentElement.parentElement.parentElement.parentElement.classList.add("atmCss");
-                    showPositionMarkingsOnOC(elm,abc,element)
+                    //showPositionMarkingsOnOC(elm,abc,element)
                 }
             }
             if(calcFlag)
             {
                 var g=+element.textContent + (+items[i+1].textContent);
                 if(!isNaN(g))
-                    jQ(element.parentElement).append("<span class='supS'>"+g.toFixed(2)+"</span>")
+                    jQ(element.parentElement).append("<span class='supS' data-text='"+g.toFixed(2)+"'>"+g.toFixed(2)+"</span>")
             }
             if(displayCalcSynthetic)
 			{
 				jQ(items[1].parentElement).append("<span class='supS synthetic'>"+synthetic.toFixed(2)+" ( "+(+synthetic-(+items[1].textContent)).toFixed(0)+" )</span>")
 				displayCalcSynthetic=false;
 			}
-
         }
+        showPositionMarkingsOnOC(elm,abc,element)
     });
     calculateOCGreeks();
 }
@@ -2344,7 +2344,13 @@ function showHoldingDropdown() {
     simulateSelectBoxEvent();
 }
 
-const mouseoverEvent = new Event('mouseenter');
+const mouseoverEvent = new Event('mouseenter',{
+    bubbles: true,
+    cancelable: true,
+    view: window,
+    clientX: 450,
+    clientY: 2000
+});
 
 function addSensibulLayover()
 {
@@ -2876,7 +2882,7 @@ function assignGreeks(scriptName,strike,option,dateVar,monthVar,price,isOC){
     if(!isOC)
     {
         let self=this
-        let items = jQ(".items-wrapper .items:first div.livePos").splice(0);
+        let items = jQ(".items-wrapper .items div.livePos").splice(0);
           items.forEach(function(element,i) {
             var elm=jQ(element).find("span.name")[0].textContent.trim().split(" ");
             var greekVal=jQ(element).find("span.greekOCWrapper")[0].textContent.trim().split(" ");
@@ -3330,13 +3336,13 @@ function fullWidth() {
         right: 10px;
         letter-spacing: 1px;
 	}
-    .info-wrapper.livePos {
+    .item-info-wrapper.livePos {
         box-shadow: inset 0px 0px 20px 0px darkslategray;
     }
     .atmCss {
         box-shadow: inset 0px 0px 5px 0px gray !important;
     }
-    .info-wrapper.livePos.atmCss {
+    .item-info-wrapper.livePos.atmCss {
         box-shadow: inset 0px 0px 20px 0px darkslategray,inset 0px 0px 5px 0px gray !important;
     }
     .app .wrapper {
@@ -3899,17 +3905,28 @@ function main() {
         var response = window.confirm("This will clear the current watchlist, Do you want to continue?")
         if(response==false)
             return;
-        var optionChainLength = jQ(".vddl-draggable").length-1;
+        var optionChainLength = jQ(".items:first-child .draggable-item").length-1;
         var i=1;
+        const deleteEvent = new KeyboardEvent('keydown', {
+            key: 'Delete',
+            code: 'Delete',
+            keyCode: 46,
+            which: 46,
+            bubbles: true,
+            cancelable: true,
+            target:document.getElementsByTagName("body")[0]
+        });
         removeRow(i,optionChainLength);
         function removeRow(i,optionChainLength){
             if(optionChainLength>i)
             {
-                jQ(jQ(".vddl-draggable")[optionChainLength]).find(".info-wrapper")[0].dispatchEvent(mouseoverEvent);
-                setTimeout(function (){
-                    jQ(jQ(jQ(".vddl-draggable")[optionChainLength]).find(".info-wrapper .actions>span")[4]).find("button")[0].click()
-                    removeRow(i,--optionChainLength);
-                },0)
+                document.dispatchEvent(deleteEvent);
+                removeRow(i,--optionChainLength);
+                //jQ(jQ(".draggable-item")[optionChainLength].parentElement.parentElement.parentElement)[0].dispatchEvent(mouseoverEvent);
+                //setTimeout(function (){
+                  //  jQ(jQ(jQ(".draggable-item")[optionChainLength]).find(".actions>span")[4]).find("button")[0].click()
+                    //removeRow(i,--optionChainLength);
+                //},400)
             }
         }
     });
