@@ -112,7 +112,7 @@ const indices_MIDCPNIFTY = 5;
 const positionsTable = "div.positions > section.open-positions.table-wrapper > div > div > div > table";
 const allDOMPaths = {
     positionRowTS: "td.instrument > a > span.tradingsymbol",
-    rowsFromHoldingsTable: "div.holdings > section > div > div > div > table > tbody > tr",
+    rowsFromHoldingsTable: "div.holdings > section > div > div > table > tbody > tr",
     attrNameForInstrumentTR: "data-uid",
     tradingSymbol: "td.instrument >  a > span.tradingsymbol",
     domPathWatchlistRow: "div.instruments > div > div.vddl-draggable.instrument",
