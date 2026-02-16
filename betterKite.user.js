@@ -2885,25 +2885,28 @@ function assignGreeks(scriptName,strike,option,dateVar,monthVar,price,isOC){
         let items = jQ(".items-wrapper .items div.livePos").splice(0);
           items.forEach(function(element,i) {
             var elm=jQ(element).find("span.name")[0].textContent.trim().split(" ");
-            var greekVal=jQ(element).find("span.greekOCWrapper")[0].textContent.trim().split(" ");
-            if(elm.length>=4)
+            if(elm.length>1)
             {
-                if(scriptName==elm[0] && monthVar==elm[1] && strike==elm[2] && option==elm[3])
+                var greekVal=jQ(element).find("span.greekOCWrapper")[0].textContent.trim().split(" ");
+                if(elm.length>=4)
                 {
-                    jQ(self).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
-                                                           greekVal[0] + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
-                                                           greekVal[1])+"</span></span>"
-                    return;
+                    if(scriptName==elm[0] && monthVar==elm[1] && strike==elm[2] && option==elm[3])
+                    {
+                        jQ(self).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
+                                                                       greekVal[0] + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
+                                                                       greekVal[1])+"</span></span>"
+                        return;
+                    }
                 }
-            }
-            if(elm.length>=6)
-            {
-                if(scriptName==elm[0] && elm[1].startsWith(""+dateVar) && monthVar==elm[3] && strike==elm[4] && option==elm[5])
+                if(elm.length>=6)
                 {
-                    jQ(self).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
-                                                           greekVal[0] + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
-                                                           greekVal[1])+"</span></span>"
-                    return;
+                    if(scriptName==elm[0] && elm[1].startsWith(""+dateVar) && monthVar==elm[3] && strike==elm[4] && option==elm[5])
+                    {
+                        jQ(self).find("td.open.instrument > a").append("<span class='greekWrapper'><span class='text-label blue randomClassToHelpHide'>DELTA &nbsp;&nbsp;" +
+                                                                       greekVal[0] + "</span><span class='text-label orange randomClassToHelpHide' >IV &nbsp;&nbsp;"+
+                                                                       greekVal[1])+"</span></span>"
+                        return;
+                    }
                 }
             }
         })
@@ -2912,7 +2915,7 @@ function assignGreeks(scriptName,strike,option,dateVar,monthVar,price,isOC){
     let oc = jQ(".items-wrapper .items:first span.name").splice(0);
     if(isNaN(dateVar))
     {
-        const expiryDayMapping = {"NIFTY":"Thursday","BANKNIFTY":"Thursday","SENSEX":"Tuesday","BANKEX":"Tuesday","FINIFTY":"Thursday","MIDCPNIFTY":"Thursday"}
+        const expiryDayMapping = {"NIFTY":"Tuesday","BANKNIFTY":"Tuesday","SENSEX":"Friday","BANKEX":"Friday","FINIFTY":"Tuesday","MIDCPNIFTY":"Tuesday"}
         let tempDate = new Date();
         dateVar = new Date(""+tempDate.getDate()+" "+monthVar+" "+tempDate.getUTCFullYear());
         let lastDaysOfWeek = getLastDaysOfWeekInMonth(tempDate.getUTCFullYear(), dateVar.getMonth());
@@ -5178,7 +5181,7 @@ function getLastThursday(m, year) {
     d.setMonth(month || d.getMonth() + 1); // ... the next month.
     do { // Roll the days backwards until Monday.
         d.setDate(d.getDate() - 1);
-    } while (d.getDay() !== 4);
+    } while (d.getDay() !== 2);
 
     let da = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(d);
     let mo = new Intl.DateTimeFormat('en', { month: 'short' }).format(d);
